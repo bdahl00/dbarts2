@@ -448,9 +448,25 @@ namespace dbarts {
     }
 
 // bdahl addition
-    slotExpr = Rf_getAttrib(dataExpr, Rf_install("precisVals"));
+    slotExpr = Rf_getAttrib(dataExpr, Rf_install("precisIndices"));
     if (rc_isS4Null(slotExpr) || Rf_isNull(slotExpr) || rc_getLength(slotExpr) == 0) {
       data.precisIndices = NULL;
+    } else {
+      if (!Rf_isReal(slotExpr)) Rf_error("precisIndices must be of type real"); // This is potentially problematic
+      // See block below for assertion problems - I'm not really sure what it means
+      dims = INTEGER(Rf_getAttrib(slotExpr, R_DimSymbol));
+      std::size_t totLength = static_cast<std::size_t>(dims[0] * dims[1]);
+      double* pIdxAsDouble = REAL(slotExpr);
+      std::size_t* pIdxAsSizeT;
+      for (std::size_t i = 0; i < totLength; ++i) {
+        pIdxAsSizeT[i] = static_cast<std::size_t>(pIdxAsDouble[i]);
+      }
+      data.precisIndices = pIdxAsSizeT;
+    }
+
+    slotExpr = Rf_getAttrib(dataExpr, Rf_install("precisVals"));
+    if (rc_isS4Null(slotExpr) || Rf_isNull(slotExpr) || rc_getLength(slotExpr) == 0) {
+      data.precisVals = NULL;
     } else {
       if (!Rf_isReal(slotExpr)) Rf_error("precisVals must be of type real");
 // I don't really know what the analogue to the x.test constraint assertion would be
