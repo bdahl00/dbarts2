@@ -13,7 +13,7 @@ setMethod("initialize", "dbartsControl",
 dbartsControl <-
   function(verbose = FALSE, keepTrainingFits = TRUE, useQuantiles = FALSE, keepTrees = FALSE,
            n.samples = NA_integer_, n.cuts = 100L,
-           n.burn = 200L, n.trees = 75L, n.chains = 4L, n.threads = dbarts::guessNumCores(),
+           n.burn = 200L, n.trees = 75L, n.chains = 4L, n.threads = dbarts2::guessNumCores(),
            n.thin = 1L, printEvery = 100L, printCutoffs = 0L,
            rngKind = "default", rngNormalKind = "default", rngSeed = NA_integer_, updateState = TRUE)
 {
@@ -82,10 +82,11 @@ validateArgumentsInEnvironment <- function(envir, func, control, verbose, n.samp
 }
 
 dbarts <- function(formula, data, test, subset, weights, offset, offset.test = offset,
+		   precisIndices = NULL, precisVals = NULL,
                    verbose = FALSE, n.samples = 800L,
                    tree.prior = cgm, node.prior = normal, resid.prior = chisq,
                    proposal.probs = c(birth_death = 0.5, swap = 0.1, change = 0.4, birth = 0.5),
-                   control = dbarts::dbartsControl(), sigma = NA_real_)
+                   control = dbarts2::dbartsControl(), sigma = NA_real_)
 {
   matchedCall <- match.call()
   
@@ -93,8 +94,8 @@ dbarts <- function(formula, data, test, subset, weights, offset, offset.test = o
 
   validateCall <- redirectCall(matchedCall, quoteInNamespace(validateArgumentsInEnvironment))
   validateCall <- addCallArgument(validateCall, 1L, sys.frame(sys.nframe()))
-  validateCall <- addCallArgument(validateCall, 2L, dbarts::dbarts)
-  eval(validateCall, evalEnv, getNamespace("dbarts"))
+  validateCall <- addCallArgument(validateCall, 2L, dbarts2::dbarts)
+  eval(validateCall, evalEnv, getNamespace("dbarts2"))
 
   if (length(control@call) == 1L && control@call == call("NA")) control@call <- matchedCall
   control@verbose <- verbose

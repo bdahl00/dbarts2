@@ -13,6 +13,8 @@ methods::setMethod("initialize", "dbartsData",
     .Object@weights.test <- modelMatrices$weights.test
     .Object@offset <- modelMatrices$offset
     .Object@offset.test <- modelMatrices$offset.test
+    .Object@precisIndices <- modelMatrices$precisIndices
+    .Object@precisVals <- modelMatrices$precisVals
 
     .Object@testUsesRegularOffset <- modelMatrices$testUsesRegularOffset
   }
@@ -154,7 +156,8 @@ getTestOffset <- quote({
   stop("cannot construct test offset")
 })
 
-dbartsData <- function(formula, data, test, subset, weights, offset, offset.test = offset)
+dbartsData <- function(formula, data, test, subset, weights, offset, offset.test = offset,
+		       precisIndices = NULL, precisVals = NULL)
 {
   dataIsMissing <- missing(data)
   testIsMissing <- missing(test)
@@ -204,7 +207,7 @@ dbartsData <- function(formula, data, test, subset, weights, offset, offset.test
     ## this allows subset to be applied to offset, even if offset was a language construct (e.g. off + 0.1)
     if (identical(offsetGivenAsScalar, FALSE)) modelFrameCall$offset <- offset
     
-    modelFrame <- eval(modelFrameCall, parent.frame())
+    modelFrame <- eval(modelFrameCall, parent.frame()) # A fancy way of calling stats::model.frame
     if (NROW(modelFrame) == 0) {
       if (!is.null(matchedCall$subset)) stop("empty 'subset' specified")
       stop("cannot construct model matrices from formula")
@@ -356,6 +359,8 @@ dbartsData <- function(formula, data, test, subset, weights, offset, offset.test
     }
   }
   
-  methods::new("dbartsData", modelMatrices = namedList(y, x, x.test, weights, weights.test, offset, offset.test, testUsesRegularOffset), n.cuts = NA_integer_, sigma = NA_real_)
+  methods::new("dbartsData", modelMatrices = namedList(y, x, x.test, weights, weights.test, offset, offset.test,
+                                                       precisIndices, precisVals,
+                                                       testUsesRegularOffset), n.cuts = NA_integer_, sigma = NA_real_)
 }
 

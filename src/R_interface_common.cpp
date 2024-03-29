@@ -446,6 +446,20 @@ namespace dbarts {
       rc_assertDoubleConstraints(slotExpr, "test offset", RC_LENGTH | RC_EQ, rc_asRLength(data.numTestObservations), RC_END);
       data.testOffset = REAL(slotExpr);
     }
+
+// bdahl addition
+    slotExpr = Rf_getAttrib(dataExpr, Rf_install("precisVals"));
+    if (rc_isS4Null(slotExpr) || Rf_isNull(slotExpr) || rc_getLength(slotExpr) == 0) {
+      data.precisIndices = NULL;
+    } else {
+      if (!Rf_isReal(slotExpr)) Rf_error("precisVals must be of type real");
+// I don't really know what the analogue to the x.test constraint assertion would be
+// In any case, we don't really need this to work so long as I'm the only one calling the functions
+//      rc_assertDimConstraints(slotExpr, "dimensions of precisVals", RC_LENGTH | RC_EQ, rc_asRLength(2),
+//                    RC_NA, RC_VALUE | RC_EQ, static_cast<int>(data.numPredictors), RC_END);
+      data.precisVals = REAL(slotExpr);
+    }
+// bdahl end of addition
     
     slotExpr = Rf_getAttrib(dataExpr, Rf_install("sigma"));
     data.sigmaEstimate = rc_getDouble(slotExpr, "sigma estimate", RC_LENGTH | RC_EQ, rc_asRLength(1), RC_NA | RC_YES, RC_VALUE | RC_GT, 0.0, RC_END);

@@ -139,7 +139,7 @@ bart2 <- function(
   power = 2.0, base = 0.95, split.probs = 1 / num.vars,
   n.trees = 75L,
   n.samples = 500L, n.burn = 500L,
-  n.chains = 4L, n.threads = min(dbarts::guessNumCores(), n.chains), combineChains = FALSE,
+  n.chains = 4L, n.threads = min(dbarts2::guessNumCores(), n.chains), combineChains = FALSE,
   n.cuts = 100L, useQuantiles = FALSE,
   n.thin = 1L, keepTrainingFits = TRUE,
   printEvery = 100L, printCutoffs = 0L,
@@ -155,12 +155,12 @@ bart2 <- function(
   callingEnv <- parent.frame()
   
   argNames <- names(matchedCall)[-1L]
-  unknownArgs <- argNames %not_in% names(formals(dbarts::bart2)) & argNames %not_in% names(formals(dbarts::dbartsControl))
+  unknownArgs <- argNames %not_in% names(formals(dbarts2::bart2)) & argNames %not_in% names(formals(dbarts2::dbartsControl))
   if (any(unknownArgs))
     stop("unknown arguments: '", paste0(argNames[unknownArgs], collapse = "', '"), "'")
   
-  controlCall <- redirectCall(matchedCall, dbarts::dbartsControl)
-  missingDefaultArgs <- names(formals(bart2))[names(formals(bart2)) %in% names(formals(dbarts::dbartsControl)) &
+  controlCall <- redirectCall(matchedCall, dbarts2::dbartsControl)
+  missingDefaultArgs <- names(formals(bart2))[names(formals(bart2)) %in% names(formals(dbarts2::dbartsControl)) &
                                               names(formals(bart2)) %not_in% names(matchedCall)]
   if (length(missingDefaultArgs) > 0L) {
     currentEnv <- sys.frame(sys.nframe())
@@ -183,7 +183,7 @@ bart2 <- function(
   if ("split.probs" %in% names(matchedCall))
     tree.prior[[4L]] <- matchedCall$split.probs
   else
-    tree.prior[[4L]] <- formals(dbarts::bart2)[["split.probs"]]
+    tree.prior[[4L]] <- formals(dbarts2::bart2)[["split.probs"]]
   
   if (!is.null(matchedCall[["k"]])) {
     node.prior <- quote(normal(k))
@@ -195,7 +195,7 @@ bart2 <- function(
   resid.prior <- quote(chisq(sigdf, sigquant))
   resid.prior[[2L]] <- sigdf; resid.prior[[3L]] <- sigquant
   
-  samplerCall <- redirectCall(matchedCall, dbarts::dbarts)
+  samplerCall <- redirectCall(matchedCall, dbarts2::dbarts)
   samplerCall$control <- control
   samplerCall$n.samples <- NULL
   samplerCall$tree.prior <- tree.prior
@@ -289,7 +289,7 @@ bart <- function(
   if ("splitprobs" %in% names(matchedCall))
     tree.prior[[4L]] <- matchedCall$splitprobs
   else
-    tree.prior[[4L]] <- formals(dbarts::bart)[["splitprobs"]]
+    tree.prior[[4L]] <- formals(dbarts2::bart)[["splitprobs"]]
 
   node.prior <- quote(normal(k))
   node.prior[[2L]] <- if (!is.null(matchedCall[["k"]])) matchedCall[["k"]] else k
@@ -301,7 +301,7 @@ bart <- function(
                offset = binaryOffset, verbose = as.logical(verbose), n.samples = as.integer(ndpost),
                tree.prior = tree.prior, node.prior = node.prior, resid.prior = resid.prior,
                proposal.probs = proposalprobs, control = control, sigma = as.numeric(sigest))
-  sampler <- do.call(dbarts::dbarts, args, envir = parent.frame(1L))
+  sampler <- do.call(dbarts2::dbarts, args, envir = parent.frame(1L))
   
   if (sampleronly) return(sampler)
   

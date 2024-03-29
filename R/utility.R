@@ -157,7 +157,7 @@ makeModelMatrixFromDataFrame <- function(x, drop = TRUE) {
 quoteInNamespace <- function(name, character.only = FALSE) {
   result <- quote(a + b)
   result[[1L]] <- as.symbol(":::")
-  result[[2L]] <- as.symbol("dbarts")
+  result[[2L]] <- as.symbol("dbarts2")
   
   result[[3L]] <- if (character.only) name else match.call()[[2]]
   result

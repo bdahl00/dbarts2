@@ -10,7 +10,7 @@ rbart_vi <- function(
   power = 2.0, base = 0.95,
   n.trees = 75L,
   n.samples = 1500L, n.burn = 1500L,
-  n.chains = 4L, n.threads = min(dbarts::guessNumCores(), n.chains), combineChains = FALSE,
+  n.chains = 4L, n.threads = min(dbarts2::guessNumCores(), n.chains), combineChains = FALSE,
   n.cuts = 100L, useQuantiles = FALSE,
   n.thin = 5L, keepTrainingFits = TRUE,
   printEvery = 100L, printCutoffs = 0L,
@@ -39,7 +39,7 @@ rbart_vi <- function(
   n.threads <- coerceOrError(n.threads, "integer")[1L]
   if (is.na(n.threads) || n.threads < 1L) stop("n.threads must be a non-negative integer")
   
-  controlCall <- redirectCall(matchedCall, dbarts::dbartsControl)
+  controlCall <- redirectCall(matchedCall, dbarts2::dbartsControl)
   missingDefaults <- names(formals(rbart_vi))[names(formals(rbart_vi)) %in% names(formals(dbartsControl))]
   missingDefaults <- missingDefaults[missingDefaults %not_in% names(controlCall)]
   controlCall[missingDefaults] <- formals(rbart_vi)[missingDefaults]
@@ -128,7 +128,7 @@ rbart_vi <- function(
   if (is.symbol(matchedCall$prior) || is.character(matchedCall$prior) && any(names(rbart.priors) == matchedCall$prior))
     prior <- rbart.priors[[which(names(rbart.priors) == matchedCall$prior)]]
   
-  data <- eval(redirectCall(matchedCall, dbarts::dbartsData), envir = callingEnv)
+  data <- eval(redirectCall(matchedCall, dbarts2::dbartsData), envir = callingEnv)
    
   if (length(group.by) != length(data@y))
     stop("'group.by' not of length equal to that of data; check for NAs in original data, and for name collisions with `data` argument and calling environment")
@@ -180,7 +180,7 @@ rbart_vi <- function(
         randomSeeds <- rep.int(NA_integer_, n.chains)
       }
       
-      clusterExport(cluster, c("rbart_vi_fit", "rbart_vi_run"), asNamespace("dbarts"))
+      clusterExport(cluster, c("rbart_vi_fit", "rbart_vi_run"), asNamespace("dbarts2"))
       clusterEvalQ(cluster, require(dbarts))
       
       tryResult <- tryCatch(
@@ -303,7 +303,7 @@ rbart_vi_fit <- function(chain.num, seed, samplerArgs, rbartArgs)
   if (!is.na(seed))
     set.seed(seed)
   
-  sampler <- do.call(dbarts::dbarts, samplerArgs)
+  sampler <- do.call(dbarts2::dbarts, samplerArgs)
   sampler$control@call <- samplerArgs$control@call
   
   oldUpdateState <- sampler$control@updateState

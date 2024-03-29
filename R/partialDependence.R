@@ -1,6 +1,6 @@
 pdbart.getAndInitializeSampler <- function(bartCall, evalEnv)
 {
-  isBart2 <- bartCall[[1L]] == quote(bart2) || bartCall[[1L]] == quote(dbarts::bart2)
+  isBart2 <- bartCall[[1L]] == quote(bart2) || bartCall[[1L]] == quote(dbarts2::bart2)
   if (isBart2) bartCall[["samplerOnly"]] <- TRUE
   else         bartCall[["sampleronly"]] <- TRUE
   
@@ -36,7 +36,7 @@ pdbart <- function (
   # prediction matrix
   sampler <- fit <- NULL
   if (is.matrix(x.train) || is.data.frame(x.train) || is.formula(x.train)) {
-    bartCall <- redirectCall(matchedCall, dbarts::bart)
+    bartCall <- redirectCall(matchedCall, dbarts2::bart)
     massign[sampler, fit] <- pdbart.getAndInitializeSampler(bartCall, callingEnv)
     
   } else if (inherits(x.train, "dbartsSampler")) {
@@ -197,7 +197,7 @@ pd2bart <- function(
   # prediction matrix
   sampler <- fit <- NULL
   if (is.matrix(x.train) || is.data.frame(x.train) || is.formula(x.train)) {
-    bartCall <- redirectCall(matchedCall, dbarts::bart)
+    bartCall <- redirectCall(matchedCall, dbarts2::bart)
     massign[sampler, fit] <- pdbart.getAndInitializeSampler(bartCall, callingEnv)
     
   } else if (inherits(x.train, "dbartsSampler")) {

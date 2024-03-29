@@ -1,9 +1,9 @@
 xbart <- function(formula, data, subset, weights, offset, verbose = FALSE, n.samples = 200L,
                   method = c("k-fold", "random subsample"), n.test = c(5, 0.2),
                   n.reps = 40L, n.burn = c(200L, 150L, 50L), loss = c("rmse", "log", "mcr"),
-                  n.threads = dbarts::guessNumCores(),
+                  n.threads = dbarts2::guessNumCores(),
                   n.trees = 75L, k = NULL, power = 2, base = 0.95, drop = TRUE,
-                  resid.prior = chisq, control = dbarts::dbartsControl(), sigma = NA_real_,
+                  resid.prior = chisq, control = dbarts2::dbartsControl(), sigma = NA_real_,
                   seed = NA_integer_)
 {
   matchedCall <- match.call()
@@ -14,7 +14,7 @@ xbart <- function(formula, data, subset, weights, offset, verbose = FALSE, n.sam
   validateCall <- redirectCall(matchedCall, quoteInNamespace(validateArgumentsInEnvironment), control, verbose, n.samples, sigma)
   validateCall <- addCallArgument(validateCall, 1L, currEnv)
   validateCall <- addCallArgument(validateCall, 2L, xbart)
-  eval(validateCall, evalEnv, getNamespace("dbarts"))
+  eval(validateCall, evalEnv, getNamespace("dbarts2"))
   
   if (control@call != call("NA")[[1L]]) control@call <- matchedCall
   control@verbose <- verbose
@@ -87,13 +87,13 @@ xbart <- function(formula, data, subset, weights, offset, verbose = FALSE, n.sam
   resid.prior <-
     if (!is.null(matchedCall$resid.prior) || "resid.prior" %in% names(matchedCall)) {
       env <- new.env(parent = evalEnv)
-      env[["chisq"]] <- getNamespace("dbarts")[["chisq"]]
-      env[["fixed"]] <- getNamespace("dbarts")[["fixed"]]
+      env[["chisq"]] <- getNamespace("dbarts2")[["chisq"]]
+      env[["fixed"]] <- getNamespace("dbarts2")[["fixed"]]
       eval(matchedCall$resid.prior, env)
     } else {
-      eval(formals(xbart)$resid.prior, getNamespace("dbarts"))()
+      eval(formals(xbart)$resid.prior, getNamespace("dbarts2"))()
     }
-  if (is.call(resid.prior)) resid.prior <- eval(resid.prior, getNamespace("dbarts"))
+  if (is.call(resid.prior)) resid.prior <- eval(resid.prior, getNamespace("dbarts2"))
   model <- new("dbartsModel", tree.prior, node.prior, node.hyperprior, resid.prior,
                node.scale = if (control@binary) 3.0 else 0.5)
   
