@@ -1,7 +1,7 @@
 #!/bin/sh
 
 if [ -z ${SHLIB+x} ]; then
-  SHLIB="dbarts"`R CMD config SHLIB_EXT`
+  SHLIB="dbarts2"`R CMD config SHLIB_EXT`
   export SHLIB
 fi
 if [ -f src/Makevars ]; then

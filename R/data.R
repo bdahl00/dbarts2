@@ -13,8 +13,9 @@ methods::setMethod("initialize", "dbartsData",
     .Object@weights.test <- modelMatrices$weights.test
     .Object@offset <- modelMatrices$offset
     .Object@offset.test <- modelMatrices$offset.test
-    .Object@precisIndices <- modelMatrices$precisIndices
-    .Object@precisVals <- modelMatrices$precisVals
+    .Object@vecchiaIndices <- modelMatrices$vecchiaIndices
+    .Object@vecchiaVals <- modelMatrices$vecchiaVals
+    .Object@vecchiaVars <- modelMatrices$vecchiaVars
 
     .Object@testUsesRegularOffset <- modelMatrices$testUsesRegularOffset
   }
@@ -157,7 +158,7 @@ getTestOffset <- quote({
 })
 
 dbartsData <- function(formula, data, test, subset, weights, offset, offset.test = offset,
-		       precisIndices = NULL, precisVals = NULL)
+		       vecchiaIndices = NULL, vecchiaVals = NULL, vecchiaVars = NULL)
 {
   dataIsMissing <- missing(data)
   testIsMissing <- missing(test)
@@ -360,7 +361,7 @@ dbartsData <- function(formula, data, test, subset, weights, offset, offset.test
   }
   
   methods::new("dbartsData", modelMatrices = namedList(y, x, x.test, weights, weights.test, offset, offset.test,
-                                                       precisIndices, precisVals,
+                                                       vecchiaIndices, vecchiaVals, vecchiaVars,
                                                        testUsesRegularOffset), n.cuts = NA_integer_, sigma = NA_real_)
 }
 

@@ -1333,6 +1333,9 @@ extern "C" {
   };
   
   void samplerThreadFunction(std::size_t taskId, void* threadDataPtr) {
+// bdahl addition
+ext_printf("samplerThreadFunction reached\n");
+// bdahl end of addition
     ThreadData* threadData(reinterpret_cast<ThreadData*>(threadDataPtr));
     
     BARTFit& fit(*threadData->fit);
@@ -1419,8 +1422,12 @@ extern "C" {
         state.trees[treeNum].setNodeAverages(fit, chainNum, chainScratch.treeY);
         
         metropolisJumpForTree(fit, chainNum, state.trees[treeNum], chainScratch.treeY, state.sigma, &stepTaken, &ignored);
-        state.trees[treeNum].sampleParametersAndSetFits(fit, chainNum, currFits, isThinningIteration ? NULL : currTestFits);
+        state.trees[treeNum].sampleParametersAndSetFits(fit, chainNum, currFits, isThinningIteration ? NULL : currTestFits,
+                                                        fit.data.vecchiaVars == NULL ? NULL : chainScratch.treeY); // bdahl: Last argument mine
         
+// bdahl addition
+ext_printf("After sampleParametersAndSetFits \n");
+// bdahl end of addition
         // totalFits += currFits - treeFits
         vec.subtractVectorsInPlace(const_cast<const double*>(oldTreeFits), data.numObservations, chainScratch.totalFits);
         vec.addVectorsInPlace(const_cast<const double*>(currFits), data.numObservations, chainScratch.totalFits);
@@ -1487,6 +1494,9 @@ namespace dbarts {
   void BARTFit::runSampler(size_t numBurnIn, Results* resultsPointer)
   {
     if (control.verbose) ext_printf("Running mcmc loop:\n");
+// bdahl addition - is it possible to print?
+ext_printf("Is it possible to print?\n");
+// bdahl end of addition
     
 #ifdef HAVE_SYS_TIME_H
     struct timeval startTime;
@@ -1529,6 +1539,9 @@ namespace dbarts {
         outputDelay.tv_sec = 0;
         outputDelay.tv_nsec = 100000000; // every 0.1 seconds
         misc_htm_runTopLevelTasksWithOutput(threadManager, &samplerThreadFunction, threadDataPtr, control.numChains, &outputDelay);
+// bdahl addition
+ext_printf("In the else block\n");
+// bdahl end of addition
       } else {
         misc_htm_runTopLevelTasks(threadManager, &samplerThreadFunction, threadDataPtr, control.numChains);
       }

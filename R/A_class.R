@@ -226,8 +226,9 @@ methods::setClass("dbartsData",
        weights.test = "numericOrNULL",
        offset       = "numericOrNULL",
        offset.test  = "numericOrNULL",
-       precisIndices= "matrixOrNULL", # new
-       precisVals   = "matrixOrNULL", # new
+       vecchiaIndices= "matrixOrNULL", # new
+       vecchiaVals   = "matrixOrNULL", # new
+       vecchiaVars   = "numericOrNULL", # new
        n.cuts       = "integer",
        sigma        = "numeric",
 
@@ -241,8 +242,9 @@ methods::setClass("dbartsData",
        weights.test = NULL,
        offset       = NULL,
        offset.test  = NULL,
-       precisIndices= NULL,
-       precisVals   = NULL,
+       vecchiaIndices= NULL,
+       vecchiaVals   = NULL,
+       vecchiaVars   = NULL,
        n.cuts       = integer(0),
        sigma        = NA_real_,
 

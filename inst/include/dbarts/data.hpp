@@ -16,8 +16,10 @@ namespace dbarts {
     const double* offset;
     const double* testOffset;
 
-    const std::size_t* precisIndices;
-    const double* precisVals;
+    const std::size_t* vecchiaIndices;
+    const double* vecchiaVals;
+    const double* vecchiaVars;
+    std::size_t numNeighbors;
     
     std::size_t numObservations;
     std::size_t numPredictors;
@@ -29,7 +31,7 @@ namespace dbarts {
     
     Data() :
       y(NULL), x(NULL), x_test(NULL), weights(NULL), offset(NULL), testOffset(NULL),
-      precisIndices(NULL), precisVals(NULL),
+      vecchiaIndices(NULL), vecchiaVals(NULL), vecchiaVars(NULL), numNeighbors(0),
       numObservations(0), numPredictors(0), numTestObservations(0),
       sigmaEstimate(1.0), variableTypes(NULL), maxNumCuts(NULL)
     { }
@@ -47,7 +49,7 @@ namespace dbarts {
          const VariableType* variableTypes,
          const std::uint32_t* maxNumCuts) :
       y(y), x(x), x_test(x_test), weights(weights), offset(offset), testOffset(testOffset),
-      precisIndices(NULL), precisVals(NULL),
+      vecchiaIndices(NULL), vecchiaVals(NULL), vecchiaVars(NULL), numNeighbors(0),
       numObservations(numObservations), numPredictors(numPredictors), numTestObservations(numTestObservations),
       sigmaEstimate(sigmaEstimate), variableTypes(variableTypes), maxNumCuts(maxNumCuts)
     {
@@ -59,8 +61,10 @@ namespace dbarts {
          const double* weights,
          const double* offset,
          const double* testOffset,
-         const std::size_t* precisIndices,
-         const double* precisVals,
+         const std::size_t* vecchiaIndices,
+         const double* vecchiaVals,
+         const double* vecchiaVars,
+         std::size_t numNeighbors,
          std::size_t numObservations,
          std::size_t numPredictors,
          std::size_t numTestObservations,
@@ -68,7 +72,7 @@ namespace dbarts {
          const VariableType* variableTypes,
          const std::uint32_t* maxNumCust) :
       y(y), x(x), x_test(x_test), weights(weights), offset(offset), testOffset(testOffset),
-      precisIndices(precisIndices), precisVals(precisVals),
+      vecchiaIndices(vecchiaIndices), vecchiaVals(vecchiaVals), vecchiaVars(vecchiaVars), numNeighbors(numNeighbors),
       numObservations(numObservations), numPredictors(numPredictors), numTestObservations(numTestObservations),
       sigmaEstimate(sigmaEstimate), variableTypes(variableTypes), maxNumCuts(maxNumCuts)
     {

@@ -448,11 +448,11 @@ namespace dbarts {
     }
 
 // bdahl addition
-    slotExpr = Rf_getAttrib(dataExpr, Rf_install("precisIndices"));
+    slotExpr = Rf_getAttrib(dataExpr, Rf_install("vecchiaIndices"));
     if (rc_isS4Null(slotExpr) || Rf_isNull(slotExpr) || rc_getLength(slotExpr) == 0) {
-      data.precisIndices = NULL;
+      data.vecchiaIndices = NULL;
     } else {
-      if (!Rf_isReal(slotExpr)) Rf_error("precisIndices must be of type real"); // This is potentially problematic
+      if (!Rf_isReal(slotExpr)) Rf_error("vecchiaIndices must be of type real"); // This is potentially problematic
       // See block below for assertion problems - I'm not really sure what it means
       dims = INTEGER(Rf_getAttrib(slotExpr, R_DimSymbol));
       std::size_t totLength = static_cast<std::size_t>(dims[0] * dims[1]);
@@ -461,19 +461,29 @@ namespace dbarts {
       for (std::size_t i = 0; i < totLength; ++i) {
         pIdxAsSizeT[i] = static_cast<std::size_t>(pIdxAsDouble[i]);
       }
-      data.precisIndices = pIdxAsSizeT;
+      data.vecchiaIndices = pIdxAsSizeT;
+      data.numNeighbors = static_cast<std::size_t>(dims[1]);
     }
 
-    slotExpr = Rf_getAttrib(dataExpr, Rf_install("precisVals"));
+    slotExpr = Rf_getAttrib(dataExpr, Rf_install("vecchiaVals"));
     if (rc_isS4Null(slotExpr) || Rf_isNull(slotExpr) || rc_getLength(slotExpr) == 0) {
-      data.precisVals = NULL;
+      data.vecchiaVals = NULL;
     } else {
-      if (!Rf_isReal(slotExpr)) Rf_error("precisVals must be of type real");
+      if (!Rf_isReal(slotExpr)) Rf_error("vecchiaVals must be of type real");
 // I don't really know what the analogue to the x.test constraint assertion would be
 // In any case, we don't really need this to work so long as I'm the only one calling the functions
-//      rc_assertDimConstraints(slotExpr, "dimensions of precisVals", RC_LENGTH | RC_EQ, rc_asRLength(2),
+//      rc_assertDimConstraints(slotExpr, "dimensions of vecchiaVals", RC_LENGTH | RC_EQ, rc_asRLength(2),
 //                    RC_NA, RC_VALUE | RC_EQ, static_cast<int>(data.numPredictors), RC_END);
-      data.precisVals = REAL(slotExpr);
+      data.vecchiaVals = REAL(slotExpr);
+    }
+
+    slotExpr = Rf_getAttrib(dataExpr, Rf_install("vecchiaVars"));
+    if (rc_isS4Null(slotExpr) || Rf_isNull(slotExpr) || rc_getLength(slotExpr) == 0) {
+      data.vecchiaVars = NULL;
+    } else {
+      // Again, see block above for assertion problems - although since it's a vector we might be fine
+      if (!Rf_isReal(slotExpr)) Rf_error("vecchiaVars must be of type real");
+      data.vecchiaVars = REAL(slotExpr);
     }
 // bdahl end of addition
     

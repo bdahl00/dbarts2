@@ -181,7 +181,7 @@ rbart_vi <- function(
       }
       
       clusterExport(cluster, c("rbart_vi_fit", "rbart_vi_run"), asNamespace("dbarts2"))
-      clusterEvalQ(cluster, require(dbarts))
+      clusterEvalQ(cluster, require(dbarts2))
       
       tryResult <- tryCatch(
         chainResults <- clusterMap(cluster, "rbart_vi_fit", seq_len(n.chains), randomSeeds, MoreArgs = namedList(samplerArgs, rbartArgs)),

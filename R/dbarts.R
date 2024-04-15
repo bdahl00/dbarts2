@@ -82,7 +82,7 @@ validateArgumentsInEnvironment <- function(envir, func, control, verbose, n.samp
 }
 
 dbarts <- function(formula, data, test, subset, weights, offset, offset.test = offset,
-		   precisIndices = NULL, precisVals = NULL,
+		   vecchiaIndices = NULL, vecchiaVals = NULL, vecchiaVars = NULL,
                    verbose = FALSE, n.samples = 800L,
                    tree.prior = cgm, node.prior = normal, resid.prior = chisq,
                    proposal.probs = c(birth_death = 0.5, swap = 0.1, change = 0.4, birth = 0.5),
@@ -182,6 +182,8 @@ dbartsSampler <-
                   if (missing(numSamples)) numSamples <- NA_integer_
                   
                   ptr <- getPointer()
+		  # bdahl: This calls SEXP run(SEXP, SEXP, SEXP) in R_interface_sampler.cpp
+		  # see src/R_interface.cpp
                   samples <- .Call(C_dbarts_run, ptr, as.integer(numBurnIn), as.integer(numSamples))
 
                   if ((is.na(updateState) && control@updateState == TRUE) || identical(updateState, TRUE))

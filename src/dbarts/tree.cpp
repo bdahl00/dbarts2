@@ -18,6 +18,8 @@
 
 #include "functions.hpp"
 
+#include "../include/external/io.h"
+
 namespace {
   using namespace dbarts;
   
@@ -85,7 +87,8 @@ namespace dbarts {
     }
   }
   
-  void Tree::sampleParametersAndSetFits(const BARTFit& fit, size_t chainNum, double* trainingFits, double* testFits)
+  void Tree::sampleParametersAndSetFits(const BARTFit& fit, size_t chainNum, double* trainingFits, double* testFits,
+                                        double* R) // bdahl: Last argument mine, should be NULL if iid assumed
   {
     State& state(fit.state[chainNum]);
     double sigma = state.sigma;
@@ -96,15 +99,46 @@ namespace dbarts {
     double* nodeParams = NULL;
     
     if (testFits != NULL) nodeParams = misc_stackAllocate(numBottomNodes, double);
-    
-    for (size_t i = 0; i < numBottomNodes; ++i) {
-      const Node& bottomNode(*bottomNodes[i]);
+// bdahl addition 
+    if (R == NULL) {
+      for (size_t i = 0; i < numBottomNodes; ++i) { // bdahl: This loop is original - to revert, get rid of the if statement and else block
+        const Node& bottomNode(*bottomNodes[i]);
       
-      double nodeParam = bottomNode.drawFromPosterior(state.rng, *fit.model.muPrior, state.k, sigma * sigma);
-      bottomNode.setPredictions(trainingFits, nodeParam);
+        double nodeParam = bottomNode.drawFromPosterior(state.rng, *fit.model.muPrior, state.k, sigma * sigma);
+        bottomNode.setPredictions(trainingFits, nodeParam);
       
-      if (testFits != NULL) nodeParams[i] = nodeParam;
+        if (testFits != NULL) nodeParams[i] = nodeParam;
+// Rf_error("IID calculations reached\n");
+      }
+    } else {
+      Eigen::MatrixXd IMinusBD = calculateIMinusBD(fit);
+      Eigen::VectorXd IMinusBR = calculateIMinusBR(fit, R); 
+      
+      Eigen::MatrixXd DTLambdaD = IMinusBD.transpose() * IMinusBD;
+      auto Q = Eigen::MatrixXd::Identity(IMinusBD.cols(), IMinusBD.cols()); // needs to be updated with state.k somehow
+      Eigen::MatrixXd fullCondVar = (state.sigma * state.sigma * Q + DTLambdaD).inverse();
+// This can be optimized, but how to do it is a little opaque. In any case, the matrices are small
+//      Eigen::LLT<Eigen::MatrixXd> choleskyOfPrecision(fullCondPrecis);
+//      Eigen::VectorXd fullCondMean = choleskyOfPrecision.solve(Eigen::MatrixXd::Identity(DTLambdaD.cols(), DTLambdaD.cols())) *
+//
+//                                       (IMinusBR.transpose() * IMinusBD).transpose();
+      Eigen::VectorXd fullCondMean = fullCondVar * (IMinusBR.transpose() * IMinusBD).transpose();
+      Eigen::LLT<Eigen::MatrixXd> choleskyOfVar(fullCondVar);
+      
+      Eigen::VectorXd Z(numBottomNodes); // Will be our vector of standard normals;
+      for (size_t nodeIndex = 0; nodeIndex < numBottomNodes; ++nodeIndex) {
+        Z(nodeIndex) = ext_rng_simulateStandardNormal(state.rng);
+      }
+      Eigen::MatrixXd L(choleskyOfVar.matrixL());
+      Eigen::VectorXd contributions = state.sigma * L * Z;
+      for (size_t nodeIndex = 0; nodeIndex < numBottomNodes; ++nodeIndex) {
+        const Node& bottomNode(*bottomNodes[nodeIndex]);
+        bottomNode.setPredictions(trainingFits, contributions(nodeIndex));
+// Rf_error("Matrix/vector calculations reached \n");
+        if (testFits != NULL) nodeParams[nodeIndex] = contributions(nodeIndex);
+      }
     }
+// bdahl end of addition
     
     if (testFits != NULL) {
       size_t* observationNodeMap = createObservationToNodeIndexMap(fit, top, fit.sharedScratch.xt_test, fit.data.numTestObservations);
@@ -447,3 +481,62 @@ namespace dbarts {
   }
 }
 
+// bdahl addition
+namespace dbarts {
+  Eigen::MatrixXd Tree::calculateIMinusBD(const BARTFit& fit) const {
+    NodeVector bottomNodes(getBottomNodes());
+    size_t numBottomNodes = bottomNodes.size();
+    
+    Eigen::MatrixXd IMinusBD(fit.data.numObservations, numBottomNodes);
+
+    // This may not be necessary - I'm not sure
+    for (size_t rowIndex = 0; rowIndex < fit.data.numObservations; ++rowIndex) {
+      for (size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
+        IMinusBD(rowIndex, colIndex) = 0;
+      }
+    }
+    
+    for (size_t nodeIndex = 0; nodeIndex < numBottomNodes; ++nodeIndex) { // O(1) or so
+      const Node& colNode(*bottomNodes[nodeIndex]);
+      for (size_t nodeObsIndex = 0; nodeObsIndex < colNode.numObservations; ++nodeObsIndex) { // O(n)
+        size_t DRowIndex = colNode.observationIndices[nodeObsIndex]; // Only iterating over indices in the region
+        IMinusBD(DRowIndex, nodeIndex)++; // It's kind of satisfying to actually get to do this
+        for (size_t rowIndex = 0; rowIndex < fit.data.numObservations; ++rowIndex) { // O(n)
+          for (size_t BColIndex = 0; BColIndex < fit.data.numNeighbors; ++BColIndex) { // O(m) - depends on numNeighbors
+            size_t BDindex = fit.data.vecchiaIndices[rowIndex + fit.data.numObservations + BColIndex];
+            if (DRowIndex == BColIndex) {
+              IMinusBD(rowIndex, nodeIndex) -= fit.data.vecchiaVals[rowIndex + fit.data.numObservations * BColIndex];
+            }
+          }
+        }
+      }
+    }
+
+    for (size_t rowIndex = 0; rowIndex < IMinusBD.rows(); ++rowIndex) {
+      for (size_t colIndex = 0; colIndex < IMinusBD.cols(); ++colIndex) {
+        IMinusBD(rowIndex, colIndex) = IMinusBD(rowIndex, colIndex) / sqrt(fit.data.vecchiaVars[rowIndex]);
+      }
+    }
+
+    return IMinusBD;
+  }
+
+  Eigen::VectorXd Tree::calculateIMinusBR(const BARTFit& fit, double* R) const {
+    size_t numObservations = fit.data.numObservations;
+    Eigen::VectorXd IMinusBR(numObservations);
+
+    for (size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
+      IMinusBR(colIndex) = R[colIndex];
+      for (size_t neighborIndex = 0; neighborIndex < fit.data.numNeighbors; ++neighborIndex) {
+        size_t inducedIndex = fit.data.vecchiaIndices[colIndex + numObservations * neighborIndex];
+        IMinusBR(colIndex) -= fit.data.vecchiaVals[colIndex + numObservations * neighborIndex] * R[inducedIndex];
+      }
+
+      IMinusBR(colIndex) = IMinusBR(colIndex) / sqrt(fit.data.vecchiaVars[colIndex]);
+    }
+    
+    return IMinusBR;
+  }
+
+}
+// bdahl end of addition
