@@ -16,6 +16,8 @@
 #include <dbarts/scratch.hpp>
 #include "functions.hpp"
 
+#include <iostream>
+
 #if __cplusplus < 201112L
 #  if defined(_WIN64) || SIZEOF_SIZE_T == 8
 #    define SIZE_T_SPECIFIER "%lu"
@@ -546,12 +548,18 @@ namespace dbarts {
         
     if (isTop()) {
       if (fit.data.weights == NULL) {
+// bdahl addition
+// std::cout << "isTop() is true and weights are NULL" << std::endl;
+// bdahl end of addition
         m.average = misc_htm_computeMean(fit.threadManager, fit.chainScratch[chainNum].taskId, y, numObservations);
         m.numEffectiveObservations = static_cast<double>(numObservations);
       }
       else m.average = misc_htm_computeWeightedMean(fit.threadManager, fit.chainScratch[chainNum].taskId, y, numObservations, fit.data.weights, &m.numEffectiveObservations);
     } else {
       if (fit.data.weights == NULL) {
+// bdahl addition
+// std::cout << "isTop() is false and weights are NULL" << std::endl;
+// bdahl end of addition
         m.average = misc_htm_computeIndexedMean(fit.threadManager, fit.chainScratch[chainNum].taskId, y, observationIndices, numObservations);
         m.numEffectiveObservations = static_cast<double>(numObservations);
       }

@@ -20,7 +20,7 @@ namespace dbarts {
     
     Tree(std::size_t* indices, std::size_t numObservations, std::size_t numPredictors) : top(indices, numObservations, numPredictors) { }
     
-    void sampleParametersAndSetFits(const BARTFit& fit, std::size_t chainNum, double* trainingFits, double* testFits, double* R);
+    void sampleParametersAndSetFits(const BARTFit& fit, std::size_t chainNum, double* trainingFits, double* testFits, const double* R);
     double* recoverParametersFromFits(const BARTFit& fit, const double* treeFits); // allocates result; are ordered as bottom nodes are
     double* recoverParametersFromFits(const BARTFit& fit, const double* treeFits, std::size_t* numBottomNodes); // allocates result; are ordered as bottom nodes are
     void setCurrentFitsFromParameters(const BARTFit& fit, const double* nodeParams, double* trainingFits, double* testFits);
@@ -65,7 +65,7 @@ namespace dbarts {
     bool isValid() const;
 // bdahl addition
     Eigen::MatrixXd calculateIMinusBD(const BARTFit& fit) const;
-    Eigen::VectorXd calculateIMinusBR(const BARTFit& fit, double* R) const;
+    Eigen::VectorXd calculateIMinusBR(const BARTFit& fit) const;
 // bdahl end of addition
   };
   

@@ -16,7 +16,7 @@ namespace dbarts {
     const double* offset;
     const double* testOffset;
 
-    const std::size_t* vecchiaIndices;
+    std::size_t* vecchiaIndices; // bdahl: Ideally would be const - easier in src/R_interface_common.cpp to leave as is
     const double* vecchiaVals;
     const double* vecchiaVars;
     std::size_t numNeighbors;
@@ -61,7 +61,7 @@ namespace dbarts {
          const double* weights,
          const double* offset,
          const double* testOffset,
-         const std::size_t* vecchiaIndices,
+         std::size_t* vecchiaIndices,
          const double* vecchiaVals,
          const double* vecchiaVars,
          std::size_t numNeighbors,

@@ -38,6 +38,8 @@
 #include "functions.hpp"
 #include "tree.hpp"
 
+#include <iostream>
+
 #if __cplusplus < 201112L
 #  if defined(_WIN64) || SIZEOF_SIZE_T == 8
 #    define SIZE_T_SPECIFIER "%lu"
@@ -1422,11 +1424,12 @@ ext_printf("samplerThreadFunction reached\n");
         state.trees[treeNum].setNodeAverages(fit, chainNum, chainScratch.treeY);
         
         metropolisJumpForTree(fit, chainNum, state.trees[treeNum], chainScratch.treeY, state.sigma, &stepTaken, &ignored);
+// std::cout << "At sampleParametersAndSetFits" << std::endl;
         state.trees[treeNum].sampleParametersAndSetFits(fit, chainNum, currFits, isThinningIteration ? NULL : currTestFits,
-                                                        fit.data.vecchiaVars == NULL ? NULL : chainScratch.treeY); // bdahl: Last argument mine
+                                                        fit.data.vecchiaVars == NULL ? NULL : chainScratch.treeY); // bdahl: Last argument mine - error here
         
 // bdahl addition
-ext_printf("After sampleParametersAndSetFits \n");
+// ext_printf("After sampleParametersAndSetFits \n");
 // bdahl end of addition
         // totalFits += currFits - treeFits
         vec.subtractVectorsInPlace(const_cast<const double*>(oldTreeFits), data.numObservations, chainScratch.totalFits);
@@ -1494,9 +1497,6 @@ namespace dbarts {
   void BARTFit::runSampler(size_t numBurnIn, Results* resultsPointer)
   {
     if (control.verbose) ext_printf("Running mcmc loop:\n");
-// bdahl addition - is it possible to print?
-ext_printf("Is it possible to print?\n");
-// bdahl end of addition
     
 #ifdef HAVE_SYS_TIME_H
     struct timeval startTime;

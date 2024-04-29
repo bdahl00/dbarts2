@@ -476,7 +476,7 @@ extern "C" {
   
 #undef DEF_FUNC
   
-  void attribute_visible R_init_dbarts(DllInfo* info)
+  void attribute_visible R_init_dbarts2(DllInfo* info)
   {
     R_registerRoutines(info, NULL, R_callMethods, NULL, NULL);
     R_useDynamicSymbols(info, static_cast<Rboolean>(FALSE));

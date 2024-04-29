@@ -19,6 +19,7 @@
 #include "functions.hpp"
 
 #include "../include/external/io.h"
+#include <iostream> // bdahl addition
 
 namespace {
   using namespace dbarts;
@@ -79,17 +80,39 @@ namespace dbarts {
   
   void Tree::setNodeAverages(const BARTFit& fit, size_t chainNum, const double* y) {
     NodeVector bottomNodes(getBottomNodes());
-    
+ 
     size_t numBottomNodes = bottomNodes.size();
     
     for (size_t i = 0; i < numBottomNodes; ++i) {
       bottomNodes[i]->setAverage(fit, chainNum, y);
+// bdahl addition
+const Node& bottomNode(*bottomNodes[i]);
+/*
+for (size_t obsIndex = 0; obsIndex < bottomNode.numObservations; ++obsIndex) {
+if (obsIndex < 20) std::cout << "i: " << i << ", obsIndex: " << obsIndex << ", DRowIndex: " << bottomNode.observationIndices[obsIndex] << std::endl;
+}
+*/
+
+if (bottomNodes[i]->isTop()) {
+  for (std::size_t obsIndex = 0; obsIndex < bottomNodes[i]->numObservations; ++obsIndex) {
+    bottomNodes[i]->observationIndices[obsIndex] = obsIndex; // bdahl: Make sure this is right
+  }
+}
+
+/*
+for (size_t obsIndex = 0; obsIndex < bottomNodes[i]->numObservations; ++obsIndex) {
+if (obsIndex < 20) std::cout << "i: " << i << ", obsIndex: " << obsIndex << ", DRowIndex: " << bottomNodes[i]->observationIndices[obsIndex] << std::endl;
+}
+*/
+
+// bdahl end of addition
     }
   }
   
   void Tree::sampleParametersAndSetFits(const BARTFit& fit, size_t chainNum, double* trainingFits, double* testFits,
-                                        double* R) // bdahl: Last argument mine, should be NULL if iid assumed
+                                        const double* R) // bdahl: Last argument mine, should be NULL if iid assumed
   {
+// std::cout << "sampleParametersAndSetFits entered" << std::endl;
     State& state(fit.state[chainNum]);
     double sigma = state.sigma;
     
@@ -100,6 +123,7 @@ namespace dbarts {
     
     if (testFits != NULL) nodeParams = misc_stackAllocate(numBottomNodes, double);
 // bdahl addition 
+// std::cout << "Addition reached" << std::endl;
     if (R == NULL) {
       for (size_t i = 0; i < numBottomNodes; ++i) { // bdahl: This loop is original - to revert, get rid of the if statement and else block
         const Node& bottomNode(*bottomNodes[i]);
@@ -111,12 +135,33 @@ namespace dbarts {
 // Rf_error("IID calculations reached\n");
       }
     } else {
+// std::cout << "IMinusBD calculation reached" << std::endl;
       Eigen::MatrixXd IMinusBD = calculateIMinusBD(fit);
-      Eigen::VectorXd IMinusBR = calculateIMinusBR(fit, R); 
-      
+// std::cout << "IMinusBD passed" << std::endl;
+std::vector<double> Rvec(R, R + fit.data.numObservations);
+
+//      Eigen::VectorXd IMinusBR = calculateIMinusBR(fit); // bdahl - Error here
+// calculateIMinusBR implemented here, not called as a function, because the function segfaults and I don't know why
+std::size_t numObservations = fit.data.numObservations;
+Eigen::VectorXd IMinusBR(numObservations);
+for (std::size_t i = 0; i < 20; ++i) {
+// std::cout << fit.data.vecchiaIndices[i] << "\n";
+}
+for (std::size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
+    IMinusBR(colIndex) = Rvec.at(colIndex);
+    for (std::size_t neighborIndex = 0; neighborIndex < fit.data.numNeighbors; ++neighborIndex) {
+        std::size_t inducedIndex = fit.data.vecchiaIndices[colIndex + numObservations * neighborIndex];
+//std::cout << "colIndex: " << colIndex << ", inducedIndex: " << inducedIndex << "\n";
+        IMinusBR(colIndex) -= fit.data.vecchiaVals[colIndex + numObservations * neighborIndex] * Rvec.at(inducedIndex);
+    }
+    IMinusBR(colIndex) = IMinusBR(colIndex) / sqrt(fit.data.vecchiaVars[colIndex]);
+}
+// The issue arises as soon as calculateIMinusBR is called. The arguments are fine.
       Eigen::MatrixXd DTLambdaD = IMinusBD.transpose() * IMinusBD;
+
       auto Q = Eigen::MatrixXd::Identity(IMinusBD.cols(), IMinusBD.cols()); // needs to be updated with state.k somehow
       Eigen::MatrixXd fullCondVar = (state.sigma * state.sigma * Q + DTLambdaD).inverse();
+// std::cout << "fullCondVar calculated\n";
 // This can be optimized, but how to do it is a little opaque. In any case, the matrices are small
 //      Eigen::LLT<Eigen::MatrixXd> choleskyOfPrecision(fullCondPrecis);
 //      Eigen::VectorXd fullCondMean = choleskyOfPrecision.solve(Eigen::MatrixXd::Identity(DTLambdaD.cols(), DTLambdaD.cols())) *
@@ -486,6 +531,20 @@ namespace dbarts {
   Eigen::MatrixXd Tree::calculateIMinusBD(const BARTFit& fit) const {
     NodeVector bottomNodes(getBottomNodes());
     size_t numBottomNodes = bottomNodes.size();
+
+for (size_t nodeIndex = 0; nodeIndex < numBottomNodes; ++nodeIndex) {
+const Node& colNode(*bottomNodes[nodeIndex]);
+// observationIndices is getting stomped on, but not by the Vecchia objects
+// std::cout << "Address of observationIndices: " << &colNode.observationIndices[0] << " to " << &(colNode.observationIndices[fit.data.numObservations - 1]) << std::endl;
+// std::cout << "Address of vecchiaIndices:     " << &fit.data.vecchiaIndices[0] << " to " << &(fit.data.vecchiaIndices[fit.data.numObservations * fit.data.numNeighbors - 1]) << std::endl;
+// std::cout << "Address of vecchiaVals:        " << &fit.data.vecchiaVals[0] << " to " << &(fit.data.vecchiaVals[fit.data.numObservations * fit.data.numNeighbors - 1]) << std::endl;
+// std::cout << "Address of vecchiaVars:        " << &fit.data.vecchiaVars[0] << " to " << &(fit.data.vecchiaVars[fit.data.numObservations - 1]) << std::endl;
+/*
+for (size_t obsIndex = 0; obsIndex < colNode.numObservations; ++obsIndex) {
+if (obsIndex < 20) std::cout << "nodeIndex: " << nodeIndex << ", obsIndex: " << obsIndex << ", DRowIndex: " << colNode.observationIndices[obsIndex] << std::endl;
+}
+*/
+}
     
     Eigen::MatrixXd IMinusBD(fit.data.numObservations, numBottomNodes);
 
@@ -495,11 +554,12 @@ namespace dbarts {
         IMinusBD(rowIndex, colIndex) = 0;
       }
     }
-    
+// std::cout << "IMinusBD initialized to 0" << std::endl;    
     for (size_t nodeIndex = 0; nodeIndex < numBottomNodes; ++nodeIndex) { // O(1) or so
       const Node& colNode(*bottomNodes[nodeIndex]);
       for (size_t nodeObsIndex = 0; nodeObsIndex < colNode.numObservations; ++nodeObsIndex) { // O(n)
         size_t DRowIndex = colNode.observationIndices[nodeObsIndex]; // Only iterating over indices in the region
+//std::cout << "nodeIndex: " << nodeIndex << ", nodeObsIndex: " << nodeObsIndex << ", DRowIndex: " << DRowIndex << std::endl;
         IMinusBD(DRowIndex, nodeIndex)++; // It's kind of satisfying to actually get to do this
         for (size_t rowIndex = 0; rowIndex < fit.data.numObservations; ++rowIndex) { // O(n)
           for (size_t BColIndex = 0; BColIndex < fit.data.numNeighbors; ++BColIndex) { // O(m) - depends on numNeighbors
@@ -521,15 +581,20 @@ namespace dbarts {
     return IMinusBD;
   }
 
-  Eigen::VectorXd Tree::calculateIMinusBR(const BARTFit& fit, double* R) const {
+  Eigen::VectorXd Tree::calculateIMinusBR(const BARTFit& fit) const {
+//double* R = fit.chainScratch[0].treeY;
+
+Rf_error("calculateIMinusBR entered\n");
     size_t numObservations = fit.data.numObservations;
     Eigen::VectorXd IMinusBR(numObservations);
-
-    for (size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
-      IMinusBR(colIndex) = R[colIndex];
+Rf_error("For loop reached\n");
+for (size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
+Rf_error("R access reached\n");
+      //IMinusBR(colIndex) = R[colIndex];
+      //IMinusBR(colIndex) = *(R + colIndex);
       for (size_t neighborIndex = 0; neighborIndex < fit.data.numNeighbors; ++neighborIndex) {
         size_t inducedIndex = fit.data.vecchiaIndices[colIndex + numObservations * neighborIndex];
-        IMinusBR(colIndex) -= fit.data.vecchiaVals[colIndex + numObservations * neighborIndex] * R[inducedIndex];
+        //IMinusBR(colIndex) -= fit.data.vecchiaVals[colIndex + numObservations * neighborIndex] * R[inducedIndex];
       }
 
       IMinusBR(colIndex) = IMinusBR(colIndex) / sqrt(fit.data.vecchiaVars[colIndex]);

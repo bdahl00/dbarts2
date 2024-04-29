@@ -1,4 +1,4 @@
-useDynLib(dbarts, .registration = TRUE, .fixes = "C_")
+useDynLib(dbarts2, .registration = TRUE, .fixes = "C_")
 
 export(dbarts, bart, bart2)
 export(dbartsControl)

@@ -31,6 +31,7 @@
 #include <dbarts/model.hpp>
 #include <dbarts/state.hpp>
 
+#include <iostream> // bdahl addition
 // #include "R_interface.hpp"
 
 using std::size_t;
@@ -455,13 +456,16 @@ namespace dbarts {
       if (!Rf_isReal(slotExpr)) Rf_error("vecchiaIndices must be of type real"); // This is potentially problematic
       // See block below for assertion problems - I'm not really sure what it means
       dims = INTEGER(Rf_getAttrib(slotExpr, R_DimSymbol));
-      std::size_t totLength = static_cast<std::size_t>(dims[0] * dims[1]);
+      const std::size_t totLength = static_cast<std::size_t>(dims[0] * dims[1]);
+
       double* pIdxAsDouble = REAL(slotExpr);
-      std::size_t* pIdxAsSizeT;
+      data.vecchiaIndices = new std::size_t[totLength];
+
       for (std::size_t i = 0; i < totLength; ++i) {
-        pIdxAsSizeT[i] = static_cast<std::size_t>(pIdxAsDouble[i]);
+        data.vecchiaIndices[i] = static_cast<std::size_t>(pIdxAsDouble[i]);
+//if (i < 30) std::cout << data.vecchiaIndices[i] << std::endl;
       }
-      data.vecchiaIndices = pIdxAsSizeT;
+
       data.numNeighbors = static_cast<std::size_t>(dims[1]);
     }
 
