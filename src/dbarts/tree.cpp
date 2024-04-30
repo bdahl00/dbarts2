@@ -140,8 +140,9 @@ if (obsIndex < 20) std::cout << "i: " << i << ", obsIndex: " << obsIndex << ", D
 // std::cout << "IMinusBD passed" << std::endl;
 std::vector<double> Rvec(R, R + fit.data.numObservations);
 
-//      Eigen::VectorXd IMinusBR = calculateIMinusBR(fit); // bdahl - Error here
+      Eigen::VectorXd IMinusBR = calculateIMinusBR(fit, R); // bdahl - Error here
 // calculateIMinusBR implemented here, not called as a function, because the function segfaults and I don't know why
+/*
 std::size_t numObservations = fit.data.numObservations;
 Eigen::VectorXd IMinusBR(numObservations);
 for (std::size_t i = 0; i < 20; ++i) {
@@ -156,6 +157,7 @@ for (std::size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
     }
     IMinusBR(colIndex) = IMinusBR(colIndex) / sqrt(fit.data.vecchiaVars[colIndex]);
 }
+*/
 // The issue arises as soon as calculateIMinusBR is called. The arguments are fine.
       Eigen::MatrixXd DTLambdaD = IMinusBD.transpose() * IMinusBD;
 
@@ -581,20 +583,14 @@ if (obsIndex < 20) std::cout << "nodeIndex: " << nodeIndex << ", obsIndex: " << 
     return IMinusBD;
   }
 
-  Eigen::VectorXd Tree::calculateIMinusBR(const BARTFit& fit) const {
-//double* R = fit.chainScratch[0].treeY;
-
-Rf_error("calculateIMinusBR entered\n");
+  Eigen::VectorXd Tree::calculateIMinusBR(const BARTFit& fit, const double* R) const {
     size_t numObservations = fit.data.numObservations;
     Eigen::VectorXd IMinusBR(numObservations);
-Rf_error("For loop reached\n");
-for (size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
-Rf_error("R access reached\n");
-      //IMinusBR(colIndex) = R[colIndex];
-      //IMinusBR(colIndex) = *(R + colIndex);
+    for (size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
+      IMinusBR(colIndex) = R[colIndex];
       for (size_t neighborIndex = 0; neighborIndex < fit.data.numNeighbors; ++neighborIndex) {
         size_t inducedIndex = fit.data.vecchiaIndices[colIndex + numObservations * neighborIndex];
-        //IMinusBR(colIndex) -= fit.data.vecchiaVals[colIndex + numObservations * neighborIndex] * R[inducedIndex];
+        IMinusBR(colIndex) -= fit.data.vecchiaVals[colIndex + numObservations * neighborIndex] * R[inducedIndex];
       }
 
       IMinusBR(colIndex) = IMinusBR(colIndex) / sqrt(fit.data.vecchiaVars[colIndex]);

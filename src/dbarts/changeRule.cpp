@@ -18,6 +18,7 @@
 #include <dbarts/types.hpp>
 #include "functions.hpp"
 #include "likelihood.hpp"
+#include "matrixFunctions.hpp"
 #include "node.hpp"
 #include "tree.hpp"
 
@@ -112,7 +113,13 @@ namespace dbarts {
         
         //get logpri and logL from current tree (X)
         XLogPi = fit.model.treePrior->computeTreeLogProbability(fit, tree);
-        XLogL = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma);
+        // bdahl addition
+        if (fit.data.vecchiaVars == NULL) {
+          XLogL = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original
+        } else {
+          XLogL = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
+        }
+        // bdahl end of addition
         
         // copy old rule
         ::State oldState;
@@ -143,7 +150,13 @@ namespace dbarts {
         
         //get logpri and logL from candidate tree (Y)
         YLogPi = fit.model.treePrior->computeTreeLogProbability(fit, tree);
-        YLogL = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma);
+        // bdahl addition
+        if (fit.data.vecchiaVars == NULL) {
+          YLogL = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original
+        } else {
+          YLogL = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
+        }
+        // bdahl end of addition
         
         //draw go nogo
         alpha = std::exp(YLogPi + YLogL - XLogPi - XLogL);
@@ -181,7 +194,13 @@ namespace dbarts {
         
         //get logpri and logL from current tree (X)
         XLogPi = fit.model.treePrior->computeTreeLogProbability(fit, tree);
-        XLogL  = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma);
+        // bdahl addition
+        if (fit.data.vecchiaVars == NULL) {
+          XLogL  = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original
+        } else {
+          XLogL = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
+        }
+        // bdahl end of addition
         
         // copy old rule
         ::State oldState;
@@ -198,7 +217,13 @@ namespace dbarts {
         
         //get logpri and logL from candidate tree (Y)
         YLogPi = fit.model.treePrior->computeTreeLogProbability(fit, tree);
-        YLogL  = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma);
+        // bdahl addition
+        if (fit.data.vecchiaVars == NULL) {
+          YLogL  = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original
+        } else {
+          YLogL = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
+        }
+        // bdahl end of addition
         
         alpha = std::exp(YLogPi + YLogL - XLogPi - XLogL);
         alpha = (alpha > 1.0 ? 1.0 : alpha);

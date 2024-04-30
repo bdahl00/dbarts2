@@ -6,6 +6,7 @@
 namespace dbarts {
   struct BARTFit;
   struct Node;
+  struct Tree;
   
   double computeLogLikelihoodForBranch(const BARTFit& fit, std::size_t chainNum, const Node& branch, const double* y, double sigma);
 }

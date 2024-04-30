@@ -7,6 +7,7 @@
 #include <dbarts/model.hpp>
 #include <dbarts/state.hpp>
 #include "node.hpp"
+#include <Eigen/Dense>
 
 namespace dbarts {
   using std::size_t;

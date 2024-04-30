@@ -1336,7 +1336,7 @@ extern "C" {
   
   void samplerThreadFunction(std::size_t taskId, void* threadDataPtr) {
 // bdahl addition
-ext_printf("samplerThreadFunction reached\n");
+// ext_printf("samplerThreadFunction reached\n");
 // bdahl end of addition
     ThreadData* threadData(reinterpret_cast<ThreadData*>(threadDataPtr));
     
@@ -1540,7 +1540,7 @@ namespace dbarts {
         outputDelay.tv_nsec = 100000000; // every 0.1 seconds
         misc_htm_runTopLevelTasksWithOutput(threadManager, &samplerThreadFunction, threadDataPtr, control.numChains, &outputDelay);
 // bdahl addition
-ext_printf("In the else block\n");
+//ext_printf("In the else block\n");
 // bdahl end of addition
       } else {
         misc_htm_runTopLevelTasks(threadManager, &samplerThreadFunction, threadDataPtr, control.numChains);

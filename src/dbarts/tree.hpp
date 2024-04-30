@@ -65,7 +65,7 @@ namespace dbarts {
     bool isValid() const;
 // bdahl addition
     Eigen::MatrixXd calculateIMinusBD(const BARTFit& fit) const;
-    Eigen::VectorXd calculateIMinusBR(const BARTFit& fit) const;
+    Eigen::VectorXd calculateIMinusBR(const BARTFit& fit, const double* R) const;
 // bdahl end of addition
   };
   

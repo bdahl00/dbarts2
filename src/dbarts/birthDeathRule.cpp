@@ -17,6 +17,7 @@
 #include "likelihood.hpp"
 #include "node.hpp"
 #include "tree.hpp"
+#include "matrixFunctions.hpp"
 
 using std::size_t;
 
@@ -73,7 +74,14 @@ namespace dbarts {
       
       double parentPriorGrowthProbability = fit.model.treePrior->computeGrowthProbability(fit, nodeToChange);
       double oldPriorProbability = 1.0 - parentPriorGrowthProbability;
-      double oldLogLikelihood = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma);
+      // bdahl addition
+      double oldLogLikelihood;
+      if (fit.data.vecchiaVars == NULL) {
+        oldLogLikelihood = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original
+      } else {
+        oldLogLikelihood = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
+      }
+      // bdahl end of addition
       
       // now perform birth;
       storeState(oldState, nodeToChange);
@@ -90,7 +98,14 @@ namespace dbarts {
       double newPriorProbability = parentPriorGrowthProbability * (1.0 - leftPriorGrowthProbability) * (1.0 - rightPriorGrowthProbability);
       // double newPriorProbability = parentPriorGrowthProbability * priorSplitProbability * (1.0 - leftPriorGrowthProbability) * (1.0 - rightPriorGrowthProbability);
 
-      double newLogLikelihood = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma);
+      // bdahl addition
+      double newLogLikelihood;
+      if (fit.data.vecchiaVars == NULL) {
+        newLogLikelihood = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original 
+      } else {
+        newLogLikelihood = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
+      }
+      // bdahl end of addition
 
       double transitionProbabilityOfDeathStep = 1.0 - computeProbabilityOfBirthStep(fit, fit.chainScratch[chainNum], tree);
       double transitionProbabilityOfSelectingNodeForDeath = computeProbabilityOfSelectingNodeForDeath(tree);
@@ -129,14 +144,28 @@ namespace dbarts {
       double parentPriorGrowthProbability = fit.model.treePrior->computeGrowthProbability(fit, nodeToChange);
       double leftPriorGrowthProbability   = fit.model.treePrior->computeGrowthProbability(fit, *nodeToChange.getLeftChild());
       double rightPriorGrowthProbability  = fit.model.treePrior->computeGrowthProbability(fit, *nodeToChange.getRightChild());
-      double oldLogLikelihood = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma);
+      // bdahl addition
+      double oldLogLikelihood;
+      if (fit.data.vecchiaVals == NULL) {
+        oldLogLikelihood = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original
+      } else {
+        oldLogLikelihood = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
+      }
+      // bdahl end of addition
 
       storeState(oldState, nodeToChange);
       
       // now figure out how the node could have given birth
       nodeToChange.orphanChildren();
       
-      double newLogLikelihood = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma);
+      // bdahl addition
+      double newLogLikelihood;
+      if (fit.data.vecchiaVars == NULL) {
+        newLogLikelihood = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original
+      } else {
+        newLogLikelihood = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
+      }
+      // bdahl end of addition
       transitionProbabilityOfBirthStep = computeProbabilityOfBirthStep(fit, tree, true);
 #ifdef MATCH_BAYES_TREE
       ext_simulateContinuousUniform();
