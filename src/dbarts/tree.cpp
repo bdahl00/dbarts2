@@ -583,6 +583,7 @@ if (obsIndex < 20) std::cout << "nodeIndex: " << nodeIndex << ", obsIndex: " << 
     return IMinusBD;
   }
 
+  // This is directly copied in src/dbarts/parameterPrior.cpp - in the future, best to move this to matrixFunctions.cpp
   Eigen::VectorXd Tree::calculateIMinusBR(const BARTFit& fit, const double* R) const {
     size_t numObservations = fit.data.numObservations;
     Eigen::VectorXd IMinusBR(numObservations);

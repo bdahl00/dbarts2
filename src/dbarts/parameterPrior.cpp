@@ -14,6 +14,8 @@
 
 #include "node.hpp"
 #include "tree.hpp"
+#include "matrixFunctions.hpp"
+#include <Eigen/Dense>
 
 using std::size_t;
 using std::uint32_t;
@@ -96,15 +98,42 @@ namespace dbarts {
     const Data& data(fit.data);
     
     double sumOfSquaredResiduals;
-    if (fit.data.weights != NULL) {
-      sumOfSquaredResiduals =
-        misc_htm_computeWeightedSumOfSquaredResiduals(fit.threadManager, fit.chainScratch[chainNum].taskId,
-                                                      y, data.numObservations, data.weights, y_hat);
+    // bdahl addition
+    if (fit.data.vecchiaVars == NULL) {
+      // bdahl: This part is original
+      if (fit.data.weights != NULL) {
+        sumOfSquaredResiduals =
+          misc_htm_computeWeightedSumOfSquaredResiduals(fit.threadManager, fit.chainScratch[chainNum].taskId,
+                                                        y, data.numObservations, data.weights, y_hat);
+      } else {
+        sumOfSquaredResiduals =
+          misc_htm_computeSumOfSquaredResiduals(fit.threadManager, fit.chainScratch[chainNum].taskId,
+                                                y, data.numObservations, y_hat);
+      }
     } else {
-      sumOfSquaredResiduals =
-        misc_htm_computeSumOfSquaredResiduals(fit.threadManager, fit.chainScratch[chainNum].taskId,
-                                              y, data.numObservations, y_hat);
+      std::size_t numObservations = fit.data.numObservations;
+      /*
+      double* yMinusYHat = new double[numObservations];
+      for (std::size_t obsIndex = 0; obsIndex < numObservations; ++obsIndex) {
+        yMinusYHat[obsIndex] = y[obsIndex] - y_hat[obsIndex];
+      }
+      Eigen::VectorXd IMinusBDiff = calculateIMinusBR(fit, yMinusYHat);
+      */
+      // This is just me copying the calculateIMinusBR function. Is it tidy? No, but it works.
+      // In the long term, this function ought to be moved into matrixFunctions.cpp
+      Eigen::VectorXd IMinusBDiff(numObservations);
+      for (std::size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
+        IMinusBDiff(colIndex) = y[colIndex] - y_hat[colIndex];
+        for (std::size_t neighborIndex = 0; neighborIndex < fit.data.numNeighbors; ++neighborIndex) {
+          std::size_t inducedIndex = fit.data.vecchiaIndices[colIndex + numObservations + neighborIndex];
+          IMinusBDiff(colIndex) -= fit.data.vecchiaVals[colIndex + numObservations * neighborIndex] * (y[inducedIndex] - y_hat[inducedIndex]);
+        }
+        IMinusBDiff(colIndex) = IMinusBDiff(colIndex) / sqrt(fit.data.vecchiaVars[colIndex]);
+      }
+      sumOfSquaredResiduals = (IMinusBDiff.transpose() * IMinusBDiff)(1,1);
+      //delete [] yMinusYHat;
     }
+    // bdahl end of addition
     
     double posteriorDegreesOfFreedom = degreesOfFreedom + static_cast<double>(data.numObservations);
     
