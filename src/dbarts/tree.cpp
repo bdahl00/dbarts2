@@ -138,7 +138,7 @@ if (obsIndex < 20) std::cout << "i: " << i << ", obsIndex: " << obsIndex << ", D
 // std::cout << "IMinusBD calculation reached" << std::endl;
       Eigen::MatrixXd IMinusBD = calculateIMinusBD(fit);
 // std::cout << "IMinusBD passed" << std::endl;
-std::vector<double> Rvec(R, R + fit.data.numObservations);
+// std::vector<double> Rvec(R, R + fit.data.numObservations); // probably can be deleted
 
       Eigen::VectorXd IMinusBR = calculateIMinusBR(fit, R); // bdahl - Error here
 // calculateIMinusBR implemented here, not called as a function, because the function segfaults and I don't know why
@@ -177,7 +177,7 @@ for (std::size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
         Z(nodeIndex) = ext_rng_simulateStandardNormal(state.rng);
       }
       Eigen::MatrixXd L(choleskyOfVar.matrixL());
-      Eigen::VectorXd contributions = state.sigma * L * Z;
+      Eigen::VectorXd contributions = fullCondMean + state.sigma * L * Z;
       for (size_t nodeIndex = 0; nodeIndex < numBottomNodes; ++nodeIndex) {
         const Node& bottomNode(*bottomNodes[nodeIndex]);
         bottomNode.setPredictions(trainingFits, contributions(nodeIndex));
@@ -591,6 +591,7 @@ if (obsIndex < 20) std::cout << "nodeIndex: " << nodeIndex << ", obsIndex: " << 
       IMinusBR(colIndex) = R[colIndex];
       for (size_t neighborIndex = 0; neighborIndex < fit.data.numNeighbors; ++neighborIndex) {
         size_t inducedIndex = fit.data.vecchiaIndices[colIndex + numObservations * neighborIndex];
+// std::cout << "inducedIndex: " << inducedIndex << std::endl;
         IMinusBR(colIndex) -= fit.data.vecchiaVals[colIndex + numObservations * neighborIndex] * R[inducedIndex];
       }
 

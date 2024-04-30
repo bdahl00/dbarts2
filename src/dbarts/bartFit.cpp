@@ -1336,7 +1336,7 @@ extern "C" {
   
   void samplerThreadFunction(std::size_t taskId, void* threadDataPtr) {
 // bdahl addition
-// ext_printf("samplerThreadFunction reached\n");
+//  ext_printf("samplerThreadFunction reached\n");
 // bdahl end of addition
     ThreadData* threadData(reinterpret_cast<ThreadData*>(threadDataPtr));
     
@@ -1391,6 +1391,7 @@ extern "C" {
       y = const_cast<double*>(sharedScratch.yRescaled);
     }
 
+// std::cout << "Main for loop reached" << std::endl;
     for (size_t k = 0; k < totalNumIterations; ++k) {
       if (control.numThreads > 1 && control.numChains > 1)
         misc_htm_reserveThreadsForSubTask(fit.threadManager, taskId, k);
@@ -1412,6 +1413,7 @@ extern "C" {
       if (!isThinningIteration && data.numTestObservations > 0)
         misc_setVectorToConstant(chainScratch.totalTestFits, data.numTestObservations, 0.0);
       
+// std::cout << "Tree iteration for loop reached" << std::endl;
       for (size_t treeNum = 0; treeNum < control.numTrees; ++treeNum) {
         double* oldTreeFits = state.treeFits + treeNum * state.treeFitsStride;
         
@@ -1423,6 +1425,7 @@ extern "C" {
         
         state.trees[treeNum].setNodeAverages(fit, chainNum, chainScratch.treeY);
         
+// std::cout << "metropolisJumpForTree reached" << std::endl;
         metropolisJumpForTree(fit, chainNum, state.trees[treeNum], chainScratch.treeY, state.sigma, &stepTaken, &ignored);
 // std::cout << "At sampleParametersAndSetFits" << std::endl;
         state.trees[treeNum].sampleParametersAndSetFits(fit, chainNum, currFits, isThinningIteration ? NULL : currTestFits,

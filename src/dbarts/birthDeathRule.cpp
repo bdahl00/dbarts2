@@ -18,6 +18,7 @@
 #include "node.hpp"
 #include "tree.hpp"
 #include "matrixFunctions.hpp"
+#include <iostream>
 
 using std::size_t;
 
@@ -48,6 +49,7 @@ namespace dbarts {
     
     double ratio;
     
+// std::cout << "Solaris studio complaint reached" << std::endl;
 #if __cplusplus >= 201103L && defined(__SUNPRO_CC)
     // solaris studio seems to have trouble with higher optimization levels and allocating a fixed
     // amount on the stack
@@ -62,12 +64,14 @@ namespace dbarts {
     // Since that involves pretty much finding a node to give birth, we just do that and then possibly ignore
     // it.
 
+// std::cout << "Birth/death possibility checking" << std::endl;
     double transitionProbabilityOfSelectingNodeForBirth;
     Node* nodeToChangePtr = drawBirthableNode(fit, fit.chainScratch[chainNum], state.rng, tree, &transitionProbabilityOfSelectingNodeForBirth);
     
     double transitionProbabilityOfBirthStep = computeProbabilityOfBirthStep(fit, tree, nodeToChangePtr != NULL);
     
     if (ext_rng_simulateBernoulli(state.rng, transitionProbabilityOfBirthStep) == 1) {
+// std::cout << "Birth step" << std::endl;
       *stepWasBirth = true;
       
       Node& nodeToChange(*nodeToChangePtr);
@@ -75,15 +79,18 @@ namespace dbarts {
       double parentPriorGrowthProbability = fit.model.treePrior->computeGrowthProbability(fit, nodeToChange);
       double oldPriorProbability = 1.0 - parentPriorGrowthProbability;
       // bdahl addition
+// std::cout << "Likelihood calculation entered" << std::endl;
       double oldLogLikelihood;
       if (fit.data.vecchiaVars == NULL) {
         oldLogLikelihood = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original
       } else {
         oldLogLikelihood = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
       }
+// std::cout << "Likelihood calculation passed" << std::endl;
       // bdahl end of addition
       
       // now perform birth;
+// std::cout << "Birth performed" << std::endl;
       storeState(oldState, nodeToChange);
       
       bool exhaustedLeftSplits, exhaustedRightSplits;
@@ -132,6 +139,7 @@ namespace dbarts {
         *stepWasTaken = false;
       }
     } else {
+// std::cout << "Death step" << std::endl;
       *stepWasBirth = false;
       
       double transitionProbabilityOfDeathStep = 1.0 - transitionProbabilityOfBirthStep;
@@ -144,6 +152,7 @@ namespace dbarts {
       double parentPriorGrowthProbability = fit.model.treePrior->computeGrowthProbability(fit, nodeToChange);
       double leftPriorGrowthProbability   = fit.model.treePrior->computeGrowthProbability(fit, *nodeToChange.getLeftChild());
       double rightPriorGrowthProbability  = fit.model.treePrior->computeGrowthProbability(fit, *nodeToChange.getRightChild());
+// std::cout << "Right before one bdahl addition" << std::endl;
       // bdahl addition
       double oldLogLikelihood;
       if (fit.data.vecchiaVals == NULL) {

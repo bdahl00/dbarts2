@@ -476,8 +476,10 @@ namespace dbarts {
       if (!Rf_isReal(slotExpr)) Rf_error("vecchiaVals must be of type real");
 // I don't really know what the analogue to the x.test constraint assertion would be
 // In any case, we don't really need this to work so long as I'm the only one calling the functions
-//      rc_assertDimConstraints(slotExpr, "dimensions of vecchiaVals", RC_LENGTH | RC_EQ, rc_asRLength(2),
-//                    RC_NA, RC_VALUE | RC_EQ, static_cast<int>(data.numPredictors), RC_END);
+      //rc_assertDimConstraints(slotExpr, "number of rows of vecchiaVals", RC_LENGTH | RC_EQ, rc_asRLength(1),
+      //              RC_NA, RC_VALUE | RC_EQ, static_cast<int>(data.numObservations), RC_END);
+      rc_assertDimConstraints(slotExpr, "dimensions of vecchiaVals", RC_LENGTH | RC_EQ, rc_asRLength(2),
+                    RC_NA, RC_VALUE | RC_EQ, static_cast<int>(data.numNeighbors), RC_END);
       data.vecchiaVals = REAL(slotExpr);
     }
 
