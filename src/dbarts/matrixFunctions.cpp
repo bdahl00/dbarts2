@@ -21,9 +21,11 @@ namespace dbarts {
     auto Q = Eigen::MatrixXd::Identity(IMinusBD.cols(), IMinusBD.cols()); // needs to be updated with state.k somehow
     Eigen::MatrixXd fullCondVar = (sigma * sigma * Q + DTLambdaD).inverse();
     
-    double part1 = Q.cols() * log(sigma) / 2 - log(fullCondVar.determinant()) / 2; // This will change once state.k is included
-    Eigen::MatrixXd DTLambdaR = IMinusBD.transpose() * IMinusBR;
-    double part2 = (DTLambdaR.transpose() * fullCondVar * DTLambdaR)(1,1) / (2 * sigma * sigma);
+    double part1 = Q.cols() * log(sigma) / 2 + log(fullCondVar.determinant()) / 2; // This will change once state.k is included
+    Eigen::VectorXd DTLambdaR = IMinusBD.transpose() * IMinusBR;
+    double part2 = DTLambdaR.dot(fullCondVar * DTLambdaR) / (2 * sigma * sigma);
+    //double part2 = sigma * sigma * DTLambdaR.dot(fullCondVar * DTLambdaR) / 2;
+//    std::cout << "Exponential part: " << part2 << std::endl;
     return part1 + part2;
   }
 }

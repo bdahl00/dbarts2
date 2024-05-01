@@ -16,6 +16,7 @@
 #include "tree.hpp"
 #include "matrixFunctions.hpp"
 #include <Eigen/Dense>
+#include <iostream>
 
 using std::size_t;
 using std::uint32_t;
@@ -130,7 +131,8 @@ namespace dbarts {
         }
         IMinusBDiff(colIndex) = IMinusBDiff(colIndex) / sqrt(fit.data.vecchiaVars[colIndex]);
       }
-      sumOfSquaredResiduals = (IMinusBDiff.transpose() * IMinusBDiff)(1,1);
+      // sumOfSquaredResiduals = IMinusBDiff.adjoint() * IMinusBDiff;
+      sumOfSquaredResiduals = IMinusBDiff.dot(IMinusBDiff);
       //delete [] yMinusYHat;
     }
     // bdahl end of addition
@@ -138,7 +140,7 @@ namespace dbarts {
     double posteriorDegreesOfFreedom = degreesOfFreedom + static_cast<double>(data.numObservations);
     
     double posteriorScale = degreesOfFreedom * scale + sumOfSquaredResiduals;
-    
+// std::cout << "Sum of squared residuals: " << sumOfSquaredResiduals << std::endl; // bdahl addition 
     return posteriorScale / ext_rng_simulateChiSquared(fit.state[chainNum].rng, posteriorDegreesOfFreedom);
   }
   

@@ -160,16 +160,20 @@ for (std::size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
 */
 // The issue arises as soon as calculateIMinusBR is called. The arguments are fine.
       Eigen::MatrixXd DTLambdaD = IMinusBD.transpose() * IMinusBD;
+// std::cout << "Dimension of DTLambdaD: " << DTLambdaD.cols() << std::endl;
 
       auto Q = Eigen::MatrixXd::Identity(IMinusBD.cols(), IMinusBD.cols()); // needs to be updated with state.k somehow
       Eigen::MatrixXd fullCondVar = (state.sigma * state.sigma * Q + DTLambdaD).inverse();
+// std::cout << "fullCondVar: " << std::endl << fullCondVar << std::endl;
 // std::cout << "fullCondVar calculated\n";
 // This can be optimized, but how to do it is a little opaque. In any case, the matrices are small
 //      Eigen::LLT<Eigen::MatrixXd> choleskyOfPrecision(fullCondPrecis);
 //      Eigen::VectorXd fullCondMean = choleskyOfPrecision.solve(Eigen::MatrixXd::Identity(DTLambdaD.cols(), DTLambdaD.cols())) *
 //
 //                                       (IMinusBR.transpose() * IMinusBD).transpose();
-      Eigen::VectorXd fullCondMean = fullCondVar * (IMinusBR.transpose() * IMinusBD).transpose();
+//      Eigen::VectorXd fullCondMean = fullCondVar * (IMinusBR.transpose() * IMinusBD).transpose();
+      Eigen::VectorXd fullCondMean = fullCondVar * IMinusBD.transpose() * IMinusBR;
+// std::cout << "fullCondMean: " << std::endl << fullCondMean << std::endl;
       Eigen::LLT<Eigen::MatrixXd> choleskyOfVar(fullCondVar);
       
       Eigen::VectorXd Z(numBottomNodes); // Will be our vector of standard normals;
@@ -178,6 +182,7 @@ for (std::size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
       }
       Eigen::MatrixXd L(choleskyOfVar.matrixL());
       Eigen::VectorXd contributions = fullCondMean + state.sigma * L * Z;
+// std::cout << "contributions: " << std::endl << contributions << std::endl;
       for (size_t nodeIndex = 0; nodeIndex < numBottomNodes; ++nodeIndex) {
         const Node& bottomNode(*bottomNodes[nodeIndex]);
         bottomNode.setPredictions(trainingFits, contributions(nodeIndex));
