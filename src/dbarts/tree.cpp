@@ -135,36 +135,14 @@ if (obsIndex < 20) std::cout << "i: " << i << ", obsIndex: " << obsIndex << ", D
 // Rf_error("IID calculations reached\n");
       }
     } else {
-// std::cout << "IMinusBD calculation reached" << std::endl;
       Eigen::MatrixXd IMinusBD = calculateIMinusBD(fit);
-// std::cout << "IMinusBD passed" << std::endl;
-// std::vector<double> Rvec(R, R + fit.data.numObservations); // probably can be deleted
 
       Eigen::VectorXd IMinusBR = calculateIMinusBR(fit, R); // bdahl - Error here
-// calculateIMinusBR implemented here, not called as a function, because the function segfaults and I don't know why
-/*
-std::size_t numObservations = fit.data.numObservations;
-Eigen::VectorXd IMinusBR(numObservations);
-for (std::size_t i = 0; i < 20; ++i) {
-// std::cout << fit.data.vecchiaIndices[i] << "\n";
-}
-for (std::size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
-    IMinusBR(colIndex) = Rvec.at(colIndex);
-    for (std::size_t neighborIndex = 0; neighborIndex < fit.data.numNeighbors; ++neighborIndex) {
-        std::size_t inducedIndex = fit.data.vecchiaIndices[colIndex + numObservations * neighborIndex];
-//std::cout << "colIndex: " << colIndex << ", inducedIndex: " << inducedIndex << "\n";
-        IMinusBR(colIndex) -= fit.data.vecchiaVals[colIndex + numObservations * neighborIndex] * Rvec.at(inducedIndex);
-    }
-    IMinusBR(colIndex) = IMinusBR(colIndex) / sqrt(fit.data.vecchiaVars[colIndex]);
-}
-*/
-// The issue arises as soon as calculateIMinusBR is called. The arguments are fine.
       Eigen::MatrixXd DTLambdaD = IMinusBD.transpose() * IMinusBD;
-// std::cout << "Dimension of DTLambdaD: " << DTLambdaD.cols() << std::endl;
 
       auto Q = Eigen::MatrixXd::Identity(IMinusBD.cols(), IMinusBD.cols()); // needs to be updated with state.k somehow
       Eigen::MatrixXd fullCondVar = (state.sigma * state.sigma * Q + DTLambdaD).inverse();
-// std::cout << "fullCondVar: " << std::endl << fullCondVar << std::endl;
+std::cout << "fullCondVar: " << std::endl << fullCondVar << std::endl;
 // std::cout << "fullCondVar calculated\n";
 // This can be optimized, but how to do it is a little opaque. In any case, the matrices are small
 //      Eigen::LLT<Eigen::MatrixXd> choleskyOfPrecision(fullCondPrecis);
@@ -173,7 +151,7 @@ for (std::size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
 //                                       (IMinusBR.transpose() * IMinusBD).transpose();
 //      Eigen::VectorXd fullCondMean = fullCondVar * (IMinusBR.transpose() * IMinusBD).transpose();
       Eigen::VectorXd fullCondMean = fullCondVar * IMinusBD.transpose() * IMinusBR;
-// std::cout << "fullCondMean: " << std::endl << fullCondMean << std::endl;
+std::cout << "fullCondMean: " << std::endl << fullCondMean << std::endl;
       Eigen::LLT<Eigen::MatrixXd> choleskyOfVar(fullCondVar);
       
       Eigen::VectorXd Z(numBottomNodes); // Will be our vector of standard normals;
@@ -182,7 +160,7 @@ for (std::size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
       }
       Eigen::MatrixXd L(choleskyOfVar.matrixL());
       Eigen::VectorXd contributions = fullCondMean + state.sigma * L * Z;
-// std::cout << "contributions: " << std::endl << contributions << std::endl;
+std::cout << "contributions: " << std::endl << contributions << std::endl;
       for (size_t nodeIndex = 0; nodeIndex < numBottomNodes; ++nodeIndex) {
         const Node& bottomNode(*bottomNodes[nodeIndex]);
         bottomNode.setPredictions(trainingFits, contributions(nodeIndex));
@@ -538,21 +516,7 @@ namespace dbarts {
   Eigen::MatrixXd Tree::calculateIMinusBD(const BARTFit& fit) const {
     NodeVector bottomNodes(getBottomNodes());
     size_t numBottomNodes = bottomNodes.size();
-
-for (size_t nodeIndex = 0; nodeIndex < numBottomNodes; ++nodeIndex) {
-const Node& colNode(*bottomNodes[nodeIndex]);
-// observationIndices is getting stomped on, but not by the Vecchia objects
-// std::cout << "Address of observationIndices: " << &colNode.observationIndices[0] << " to " << &(colNode.observationIndices[fit.data.numObservations - 1]) << std::endl;
-// std::cout << "Address of vecchiaIndices:     " << &fit.data.vecchiaIndices[0] << " to " << &(fit.data.vecchiaIndices[fit.data.numObservations * fit.data.numNeighbors - 1]) << std::endl;
-// std::cout << "Address of vecchiaVals:        " << &fit.data.vecchiaVals[0] << " to " << &(fit.data.vecchiaVals[fit.data.numObservations * fit.data.numNeighbors - 1]) << std::endl;
-// std::cout << "Address of vecchiaVars:        " << &fit.data.vecchiaVars[0] << " to " << &(fit.data.vecchiaVars[fit.data.numObservations - 1]) << std::endl;
 /*
-for (size_t obsIndex = 0; obsIndex < colNode.numObservations; ++obsIndex) {
-if (obsIndex < 20) std::cout << "nodeIndex: " << nodeIndex << ", obsIndex: " << obsIndex << ", DRowIndex: " << colNode.observationIndices[obsIndex] << std::endl;
-}
-*/
-}
-    
     Eigen::MatrixXd IMinusBD(fit.data.numObservations, numBottomNodes);
 
     // This may not be necessary - I'm not sure
@@ -578,14 +542,108 @@ if (obsIndex < 20) std::cout << "nodeIndex: " << nodeIndex << ", obsIndex: " << 
         }
       }
     }
+*/
 
-    for (size_t rowIndex = 0; rowIndex < IMinusBD.rows(); ++rowIndex) {
-      for (size_t colIndex = 0; colIndex < IMinusBD.cols(); ++colIndex) {
-        IMinusBD(rowIndex, colIndex) = IMinusBD(rowIndex, colIndex) / sqrt(fit.data.vecchiaVars[rowIndex]);
+    Eigen::MatrixXd IMinusBDAlt(fit.data.numObservations, numBottomNodes);
+    for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
+      for (std::size_t rowIndex = 0; rowIndex < fit.data.numObservations; ++rowIndex) {
+        IMinusBDAlt(rowIndex, colIndex) = 0;
       }
     }
 
-    return IMinusBD;
+    for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
+      const Node& colNode(*bottomNodes[colIndex]);
+      for (std::size_t nodeObsIndex = 0; nodeObsIndex < colNode.numObservations; ++nodeObsIndex) {
+        IMinusBDAlt(colNode.observationIndices[nodeObsIndex], colIndex)++;
+      }
+    }
+
+    for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
+      const Node& colNode(*bottomNodes[colIndex]);
+      for (std::size_t rowIndex = 0; rowIndex < fit.data.numObservations; ++rowIndex) {
+        for (std::size_t neighborIndex = 0; neighborIndex < fit.data.numNeighbors; ++neighborIndex) {
+          std::size_t inducedIndex = fit.data.vecchiaIndices[rowIndex + fit.data.numObservations + neighborIndex];
+          for (std::size_t nodeObsIndex = 0; nodeObsIndex < colNode.numObservations; ++nodeObsIndex) {
+            if (colNode.observationIndices[nodeObsIndex] == inducedIndex) {
+              IMinusBDAlt(rowIndex, colIndex) -= fit.data.vecchiaVals[rowIndex + fit.data.numObservations + neighborIndex];
+            }
+          }
+        }
+      }
+    }
+
+    for (size_t rowIndex = 0; rowIndex < IMinusBDAlt.rows(); ++rowIndex) {
+      for (size_t colIndex = 0; colIndex < IMinusBDAlt.cols(); ++colIndex) {
+//        IMinusBD(rowIndex, colIndex) = IMinusBD(rowIndex, colIndex) / sqrt(fit.data.vecchiaVars[rowIndex]);
+        IMinusBDAlt(rowIndex, colIndex) = IMinusBDAlt(rowIndex, colIndex) / sqrt(fit.data.vecchiaVars[rowIndex]);
+      }
+    }
+    if (numBottomNodes == 6) {
+// For tomorrow - make sure you're constructing B correctly
+    Eigen::SparseMatrix<double> D(fit.data.numObservations, numBottomNodes);
+    D.reserve(fit.data.numObservations);
+    for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
+      const Node& colNode(*bottomNodes[colIndex]);
+      for (std::size_t nodeObsIndex = 0; nodeObsIndex < colNode.numObservations; ++nodeObsIndex) {
+        D.insert(colNode.observationIndices[nodeObsIndex], colIndex) = 1;
+      }
+    }
+    Eigen::SparseMatrix<double> B(fit.data.numObservations, fit.data.numObservations);
+    B.reserve(fit.data.numObservations * fit.data.numNeighbors);
+    for (std::size_t colIndex = 0; colIndex < fit.data.numNeighbors; ++colIndex) {
+      for (std::size_t rowIndex = 0; rowIndex < fit.data.numObservations; ++rowIndex) {
+        B.insert(rowIndex, fit.data.vecchiaIndices[rowIndex + fit.data.numObservations * colIndex] - 1) = fit.data.vecchiaVals[rowIndex + fit.data.numObservations * colIndex]; // This is slow and I know it - look into triplet insertion or something.
+      }
+    }
+    Eigen::MatrixXd BD = B * D;
+    std::cout << "D:\n" << D << std::endl;
+//    std::cout << "Left few columns of B:\n" << B.leftCols(4) << std::endl;
+    std::cout << "BD:\n" << BD << std::endl;
+    Rf_error("Lots of bottom nodes");
+    }
+//std::cout << "Minimum discrepancy: " << (IMinusBD - IMinusBDAlt).minCoeff() << std::endl;
+//std::cout << "Maximum discrepancy: " << (IMinusBD - IMinusBDAlt).maxCoeff() << std::endl;
+#if 0
+// Remove this before too long - it's not really helping
+if (numBottomNodes >= 6) {
+  Eigen::MatrixXd D(fit.data.numObservations, numBottomNodes);
+    for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
+      for (std::size_t rowIndex = 0; rowIndex < fit.data.numObservations; ++rowIndex) {
+        D(rowIndex, colIndex) = 0;
+      }
+    }
+
+    for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
+      const Node& colNode(*bottomNodes[colIndex]);
+      for (std::size_t nodeObsIndex = 0; nodeObsIndex < colNode.numObservations; ++nodeObsIndex) {
+        D(colNode.observationIndices[nodeObsIndex], colIndex)++;
+      }
+    }
+
+  std::cout << "D matrix:\n" << D << std::endl;
+
+    for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
+      const Node& colNode(*bottomNodes[colIndex]);
+      for (std::size_t rowIndex = 0; rowIndex < fit.data.numObservations; ++rowIndex) {
+        for (std::size_t neighborIndex = 0; neighborIndex < fit.data.numNeighbors; ++neighborIndex) {
+          std::size_t inducedIndex = fit.data.vecchiaIndices[rowIndex + fit.data.numObservations + neighborIndex];
+          for (std::size_t nodeObsIndex = 0; nodeObsIndex < colNode.numObservations; ++nodeObsIndex) {
+            if (colNode.observationIndices[nodeObsIndex] == inducedIndex) {
+              D(rowIndex, colIndex) -= fit.data.vecchiaVals[rowIndex + fit.data.numObservations + neighborIndex];
+            }
+          }
+        }
+      }
+    }
+std::cout << "IMinusBD\n" << D << std::endl;
+
+//  std::cout << "IMinusBD:\n" << IMinusBDAlt << std::endl;
+  std::cout << "DTLambdaD\n" << IMinusBDAlt.transpose() * IMinusBDAlt << std::endl; 
+Rf_error("Lots of bottom nodes");
+}
+// End of section to remove
+#endif
+    return IMinusBDAlt;
   }
 
   // This is directly copied in src/dbarts/parameterPrior.cpp - in the future, best to move this to matrixFunctions.cpp

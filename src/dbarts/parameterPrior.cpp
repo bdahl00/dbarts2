@@ -16,6 +16,7 @@
 #include "tree.hpp"
 #include "matrixFunctions.hpp"
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
 #include <iostream>
 
 using std::size_t;

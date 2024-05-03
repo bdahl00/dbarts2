@@ -6,6 +6,7 @@
 #include <dbarts/types.hpp>
 #include <cmath>
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
 
 #include "node.hpp"
 
