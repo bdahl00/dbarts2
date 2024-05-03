@@ -81,7 +81,7 @@ namespace dbarts {
       // bdahl addition
 // std::cout << "Likelihood calculation entered" << std::endl;
       double oldLogLikelihood;
-      if (fit.data.vecchiaVars == NULL) {
+      if (fit.data.numNeighbors == 0) {
         oldLogLikelihood = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original
       } else {
         oldLogLikelihood = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
@@ -107,7 +107,7 @@ namespace dbarts {
 
       // bdahl addition
       double newLogLikelihood;
-      if (fit.data.vecchiaVars == NULL) {
+      if (fit.data.numNeighbors == 0) {
         newLogLikelihood = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original 
       } else {
         newLogLikelihood = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
@@ -155,7 +155,7 @@ namespace dbarts {
 // std::cout << "Right before one bdahl addition" << std::endl;
       // bdahl addition
       double oldLogLikelihood;
-      if (fit.data.vecchiaVals == NULL) {
+      if (fit.data.numNeighbors == 0) {
         oldLogLikelihood = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original
       } else {
         oldLogLikelihood = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
@@ -169,7 +169,7 @@ namespace dbarts {
       
       // bdahl addition
       double newLogLikelihood;
-      if (fit.data.vecchiaVars == NULL) {
+      if (fit.data.numNeighbors == 0) {
         newLogLikelihood = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original
       } else {
         newLogLikelihood = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);

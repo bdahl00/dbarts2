@@ -125,7 +125,7 @@ namespace dbarts {
         double XLogPi = fit.model.treePrior->computeTreeLogProbability(fit, tree);
         // bdahl addition
         double XLogL;
-        if (fit.data.vecchiaVars == NULL) {
+        if (fit.data.numNeighbors == 0) {
           XLogL = computeLogLikelihoodForBranch(fit, chainNum, parent, y, sigma); // bdahl: original
         } else {
           XLogL = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
@@ -146,7 +146,7 @@ namespace dbarts {
         double YLogPi = fit.model.treePrior->computeTreeLogProbability(fit, tree);
         // bdahl addition
         double YLogL;
-        if (fit.data.vecchiaVars == NULL) {
+        if (fit.data.numNeighbors == 0) {
           YLogL = computeLogLikelihoodForBranch(fit, chainNum, parent, y, sigma); // bdahl: original
         } else {
           YLogL = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
@@ -194,7 +194,7 @@ namespace dbarts {
         double XLogPi = fit.model.treePrior->computeTreeLogProbability(fit, tree);
         // bdahl addition
         double XLogL;
-        if (fit.data.vecchiaVars == NULL) {
+        if (fit.data.numNeighbors == 0) {
           XLogL = computeLogLikelihoodForBranch(fit, chainNum, parent, y, sigma); // bdahl: original
         } else {
           XLogL = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
@@ -216,7 +216,7 @@ namespace dbarts {
         double YLogPi = fit.model.treePrior->computeTreeLogProbability(fit, tree);
         // bdahl addition
         double YLogL;
-        if (fit.data.vecchiaVars == NULL) {
+        if (fit.data.numNeighbors == 0) {
           YLogL = computeLogLikelihoodForBranch(fit, chainNum, parent, y, sigma); // bdahl: original
         } else {
           YLogL = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);

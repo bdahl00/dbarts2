@@ -32,6 +32,7 @@
 #include <dbarts/state.hpp>
 
 #include <iostream> // bdahl addition
+#include <Eigen/Sparse>
 // #include "R_interface.hpp"
 
 using std::size_t;
@@ -448,31 +449,30 @@ namespace dbarts {
       data.testOffset = REAL(slotExpr);
     }
 
-// bdahl addition
+// bdahl addition   
+// This is very brittle code - it'll work for my test case, though, so I'll fix it later.
     slotExpr = Rf_getAttrib(dataExpr, Rf_install("vecchiaIndices"));
     if (rc_isS4Null(slotExpr) || Rf_isNull(slotExpr) || rc_getLength(slotExpr) == 0) {
-      data.vecchiaIndices = NULL;
+      data.numNeighbors = 0;
+      Eigen::SparseMatrix<double> adjIMinusB(1,1);
+      data.adjIMinusB = adjIMinusB;
     } else {
-      if (!Rf_isReal(slotExpr)) Rf_error("vecchiaIndices must be of type real"); // This is potentially problematic
+      // Just copy pretty much everything into here - worry about exceptions and things later
+       if (!Rf_isReal(slotExpr)) Rf_error("vecchiaIndices must be of type real"); // This is potentially problematic
       // See block below for assertion problems - I'm not really sure what it means
       dims = INTEGER(Rf_getAttrib(slotExpr, R_DimSymbol));
       const std::size_t totLength = static_cast<std::size_t>(dims[0] * dims[1]);
 
       double* pIdxAsDouble = REAL(slotExpr);
-      data.vecchiaIndices = new std::size_t[totLength];
+      std::size_t* vecchiaIndices = new std::size_t[totLength];
 
       for (std::size_t i = 0; i < totLength; ++i) {
-        data.vecchiaIndices[i] = static_cast<std::size_t>(pIdxAsDouble[i]);
-//if (i < 30) std::cout << data.vecchiaIndices[i] << std::endl;
+        vecchiaIndices[i] = static_cast<std::size_t>(pIdxAsDouble[i]);
       }
 
       data.numNeighbors = static_cast<std::size_t>(dims[1]);
-    }
 
-    slotExpr = Rf_getAttrib(dataExpr, Rf_install("vecchiaVals"));
-    if (rc_isS4Null(slotExpr) || Rf_isNull(slotExpr) || rc_getLength(slotExpr) == 0) {
-      data.vecchiaVals = NULL;
-    } else {
+     slotExpr = Rf_getAttrib(dataExpr, Rf_install("vecchiaVals"));
       if (!Rf_isReal(slotExpr)) Rf_error("vecchiaVals must be of type real");
 // I don't really know what the analogue to the x.test constraint assertion would be
 // In any case, we don't really need this to work so long as I'm the only one calling the functions
@@ -480,16 +480,45 @@ namespace dbarts {
       //              RC_NA, RC_VALUE | RC_EQ, static_cast<int>(data.numObservations), RC_END);
       rc_assertDimConstraints(slotExpr, "dimensions of vecchiaVals", RC_LENGTH | RC_EQ, rc_asRLength(2),
                     RC_NA, RC_VALUE | RC_EQ, static_cast<int>(data.numNeighbors), RC_END);
-      data.vecchiaVals = REAL(slotExpr);
-    }
-
-    slotExpr = Rf_getAttrib(dataExpr, Rf_install("vecchiaVars"));
-    if (rc_isS4Null(slotExpr) || Rf_isNull(slotExpr) || rc_getLength(slotExpr) == 0) {
-      data.vecchiaVars = NULL;
-    } else {
-      // Again, see block above for assertion problems - although since it's a vector we might be fine
+      double* vecchiaVals = REAL(slotExpr);
+  
+      slotExpr = Rf_getAttrib(dataExpr, Rf_install("vecchiaVars"));
       if (!Rf_isReal(slotExpr)) Rf_error("vecchiaVars must be of type real");
-      data.vecchiaVars = REAL(slotExpr);
+      double* vecchiaVars = REAL(slotExpr);
+
+
+      Eigen::SparseMatrix<double> B(data.numObservations, data.numObservations);
+/*
+      B.reserve(data.numObservations * (data.numNeighbors + 1)); // - data.numNeighbors * (data.numNeighbors + 1) / 2
+      for (std::size_t colIndex = 0; colIndex < data.numNeighbors; ++colIndex) {
+        for (std::size_t rowIndex = 0; rowIndex < std::min(colIndex, data.numObservations); ++rowIndex) {
+          std::size_t inducedIndex = rowIndex + data.numObservations * colIndex;
+          std::size_t insertColIndex = vecchiaIndices[inducedIndex] - 1;
+          if (insertColIndex >= rowIndex) {
+             std::cout << "We have a problem\n";
+             std::cout << "colIndex: " << colIndex << ", rowIndex: " << rowIndex << ", inducedIndex: " << inducedIndex << ", insertColIndex: " << insertColIndex << std::endl;
+             continue;
+          }
+          B.insert(rowIndex, insertColIndex) = vecchiaVals[inducedIndex]; // This is slow and I know it - look into triplet insertion or something.
+        }
+      }
+*/
+      Eigen::SparseMatrix<double> adjIMinusB(data.numObservations, data.numObservations);
+      adjIMinusB.reserve(data.numObservations * (data.numNeighbors + 1) - data.numNeighbors * (data.numNeighbors + 1) / 2);
+      for (std::size_t rowIndex = 0; rowIndex < data.numObservations; ++rowIndex) {
+        adjIMinusB.insert(rowIndex, rowIndex) = 1 / sqrt(vecchiaVars[rowIndex]);
+        for (std::size_t compressedColIndex = 0; compressedColIndex < std::min(rowIndex, data.numNeighbors); ++compressedColIndex) {
+          std::size_t inducedIndex = rowIndex + data.numObservations * compressedColIndex;
+          std::size_t colIndex = vecchiaIndices[inducedIndex] - 1; // Accounting for 1-indexing (R) vs 0-indexing (C++)
+          if (colIndex >= rowIndex) {
+            Rf_error("vecchiaIndices is misspecified - current observation conditions on a future observation.");
+          }  
+          adjIMinusB.insert(rowIndex, colIndex) = -vecchiaVals[inducedIndex] / sqrt(vecchiaVars[rowIndex]); // This is slow and I know it - look into triplet insertion or something.
+        }
+      }
+      data.adjIMinusB = adjIMinusB;
+//std::cout << "Variance-adjusted I - B: " << adjIMinusB.leftCols(6) << std::endl;
+      delete [] vecchiaIndices;
     }
 // bdahl end of addition
     

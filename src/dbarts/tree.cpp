@@ -132,17 +132,17 @@ if (obsIndex < 20) std::cout << "i: " << i << ", obsIndex: " << obsIndex << ", D
         bottomNode.setPredictions(trainingFits, nodeParam);
       
         if (testFits != NULL) nodeParams[i] = nodeParam;
-// Rf_error("IID calculations reached\n");
       }
     } else {
+//std::cout << "First residual: " << R[0] << std::endl;
       Eigen::MatrixXd IMinusBD = calculateIMinusBD(fit);
 
-      Eigen::VectorXd IMinusBR = calculateIMinusBR(fit, R); // bdahl - Error here
+      Eigen::VectorXd IMinusBR = calculateIMinusBR(fit, R); 
       Eigen::MatrixXd DTLambdaD = IMinusBD.transpose() * IMinusBD;
 
       auto Q = Eigen::MatrixXd::Identity(IMinusBD.cols(), IMinusBD.cols()); // needs to be updated with state.k somehow
       Eigen::MatrixXd fullCondVar = (state.sigma * state.sigma * Q + DTLambdaD).inverse();
-std::cout << "fullCondVar: " << std::endl << fullCondVar << std::endl;
+//std::cout << "fullCondVar: " << std::endl << fullCondVar << std::endl;
 // std::cout << "fullCondVar calculated\n";
 // This can be optimized, but how to do it is a little opaque. In any case, the matrices are small
 //      Eigen::LLT<Eigen::MatrixXd> choleskyOfPrecision(fullCondPrecis);
@@ -151,7 +151,7 @@ std::cout << "fullCondVar: " << std::endl << fullCondVar << std::endl;
 //                                       (IMinusBR.transpose() * IMinusBD).transpose();
 //      Eigen::VectorXd fullCondMean = fullCondVar * (IMinusBR.transpose() * IMinusBD).transpose();
       Eigen::VectorXd fullCondMean = fullCondVar * IMinusBD.transpose() * IMinusBR;
-std::cout << "fullCondMean: " << std::endl << fullCondMean << std::endl;
+//std::cout << "fullCondMean: " << std::endl << fullCondMean << std::endl;
       Eigen::LLT<Eigen::MatrixXd> choleskyOfVar(fullCondVar);
       
       Eigen::VectorXd Z(numBottomNodes); // Will be our vector of standard normals;
@@ -160,11 +160,10 @@ std::cout << "fullCondMean: " << std::endl << fullCondMean << std::endl;
       }
       Eigen::MatrixXd L(choleskyOfVar.matrixL());
       Eigen::VectorXd contributions = fullCondMean + state.sigma * L * Z;
-std::cout << "contributions: " << std::endl << contributions << std::endl;
+//std::cout << "contributions: " << std::endl << contributions << std::endl;
       for (size_t nodeIndex = 0; nodeIndex < numBottomNodes; ++nodeIndex) {
         const Node& bottomNode(*bottomNodes[nodeIndex]);
         bottomNode.setPredictions(trainingFits, contributions(nodeIndex));
-// Rf_error("Matrix/vector calculations reached \n");
         if (testFits != NULL) nodeParams[nodeIndex] = contributions(nodeIndex);
       }
     }
@@ -516,69 +515,6 @@ namespace dbarts {
   Eigen::MatrixXd Tree::calculateIMinusBD(const BARTFit& fit) const {
     NodeVector bottomNodes(getBottomNodes());
     size_t numBottomNodes = bottomNodes.size();
-/*
-    Eigen::MatrixXd IMinusBD(fit.data.numObservations, numBottomNodes);
-
-    // This may not be necessary - I'm not sure
-    for (size_t rowIndex = 0; rowIndex < fit.data.numObservations; ++rowIndex) {
-      for (size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
-        IMinusBD(rowIndex, colIndex) = 0;
-      }
-    }
-// std::cout << "IMinusBD initialized to 0" << std::endl;    
-    for (size_t nodeIndex = 0; nodeIndex < numBottomNodes; ++nodeIndex) { // O(1) or so
-      const Node& colNode(*bottomNodes[nodeIndex]);
-      for (size_t nodeObsIndex = 0; nodeObsIndex < colNode.numObservations; ++nodeObsIndex) { // O(n)
-        size_t DRowIndex = colNode.observationIndices[nodeObsIndex]; // Only iterating over indices in the region
-//std::cout << "nodeIndex: " << nodeIndex << ", nodeObsIndex: " << nodeObsIndex << ", DRowIndex: " << DRowIndex << std::endl;
-        IMinusBD(DRowIndex, nodeIndex)++; // It's kind of satisfying to actually get to do this
-        for (size_t rowIndex = 0; rowIndex < fit.data.numObservations; ++rowIndex) { // O(n)
-          for (size_t BColIndex = 0; BColIndex < fit.data.numNeighbors; ++BColIndex) { // O(m) - depends on numNeighbors
-            size_t BDindex = fit.data.vecchiaIndices[rowIndex + fit.data.numObservations + BColIndex];
-            if (DRowIndex == BColIndex) {
-              IMinusBD(rowIndex, nodeIndex) -= fit.data.vecchiaVals[rowIndex + fit.data.numObservations * BColIndex];
-            }
-          }
-        }
-      }
-    }
-*/
-
-    Eigen::MatrixXd IMinusBDAlt(fit.data.numObservations, numBottomNodes);
-    for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
-      for (std::size_t rowIndex = 0; rowIndex < fit.data.numObservations; ++rowIndex) {
-        IMinusBDAlt(rowIndex, colIndex) = 0;
-      }
-    }
-
-    for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
-      const Node& colNode(*bottomNodes[colIndex]);
-      for (std::size_t nodeObsIndex = 0; nodeObsIndex < colNode.numObservations; ++nodeObsIndex) {
-        IMinusBDAlt(colNode.observationIndices[nodeObsIndex], colIndex)++;
-      }
-    }
-
-    for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
-      const Node& colNode(*bottomNodes[colIndex]);
-      for (std::size_t rowIndex = 0; rowIndex < fit.data.numObservations; ++rowIndex) {
-        for (std::size_t neighborIndex = 0; neighborIndex < fit.data.numNeighbors; ++neighborIndex) {
-          std::size_t inducedIndex = fit.data.vecchiaIndices[rowIndex + fit.data.numObservations + neighborIndex];
-          for (std::size_t nodeObsIndex = 0; nodeObsIndex < colNode.numObservations; ++nodeObsIndex) {
-            if (colNode.observationIndices[nodeObsIndex] == inducedIndex) {
-              IMinusBDAlt(rowIndex, colIndex) -= fit.data.vecchiaVals[rowIndex + fit.data.numObservations + neighborIndex];
-            }
-          }
-        }
-      }
-    }
-
-    for (size_t rowIndex = 0; rowIndex < IMinusBDAlt.rows(); ++rowIndex) {
-      for (size_t colIndex = 0; colIndex < IMinusBDAlt.cols(); ++colIndex) {
-//        IMinusBD(rowIndex, colIndex) = IMinusBD(rowIndex, colIndex) / sqrt(fit.data.vecchiaVars[rowIndex]);
-        IMinusBDAlt(rowIndex, colIndex) = IMinusBDAlt(rowIndex, colIndex) / sqrt(fit.data.vecchiaVars[rowIndex]);
-      }
-    }
-    if (numBottomNodes == 6) {
 // For tomorrow - make sure you're constructing B correctly
     Eigen::SparseMatrix<double> D(fit.data.numObservations, numBottomNodes);
     D.reserve(fit.data.numObservations);
@@ -588,80 +524,24 @@ namespace dbarts {
         D.insert(colNode.observationIndices[nodeObsIndex], colIndex) = 1;
       }
     }
-    Eigen::SparseMatrix<double> B(fit.data.numObservations, fit.data.numObservations);
-    B.reserve(fit.data.numObservations * fit.data.numNeighbors);
-    for (std::size_t colIndex = 0; colIndex < fit.data.numNeighbors; ++colIndex) {
-      for (std::size_t rowIndex = 0; rowIndex < fit.data.numObservations; ++rowIndex) {
-        B.insert(rowIndex, fit.data.vecchiaIndices[rowIndex + fit.data.numObservations * colIndex] - 1) = fit.data.vecchiaVals[rowIndex + fit.data.numObservations * colIndex]; // This is slow and I know it - look into triplet insertion or something.
-      }
-    }
-    Eigen::MatrixXd BD = B * D;
-    std::cout << "D:\n" << D << std::endl;
+//    Eigen::MatrixXd BD = B * D;
+//    std::cout << "D:\n" << D << std::endl;
 //    std::cout << "Left few columns of B:\n" << B.leftCols(4) << std::endl;
-    std::cout << "BD:\n" << BD << std::endl;
-    Rf_error("Lots of bottom nodes");
-    }
+//    std::cout << "BD:\n" << BD << std::endl;
 //std::cout << "Minimum discrepancy: " << (IMinusBD - IMinusBDAlt).minCoeff() << std::endl;
 //std::cout << "Maximum discrepancy: " << (IMinusBD - IMinusBDAlt).maxCoeff() << std::endl;
-#if 0
-// Remove this before too long - it's not really helping
-if (numBottomNodes >= 6) {
-  Eigen::MatrixXd D(fit.data.numObservations, numBottomNodes);
-    for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
-      for (std::size_t rowIndex = 0; rowIndex < fit.data.numObservations; ++rowIndex) {
-        D(rowIndex, colIndex) = 0;
-      }
-    }
-
-    for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
-      const Node& colNode(*bottomNodes[colIndex]);
-      for (std::size_t nodeObsIndex = 0; nodeObsIndex < colNode.numObservations; ++nodeObsIndex) {
-        D(colNode.observationIndices[nodeObsIndex], colIndex)++;
-      }
-    }
-
-  std::cout << "D matrix:\n" << D << std::endl;
-
-    for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
-      const Node& colNode(*bottomNodes[colIndex]);
-      for (std::size_t rowIndex = 0; rowIndex < fit.data.numObservations; ++rowIndex) {
-        for (std::size_t neighborIndex = 0; neighborIndex < fit.data.numNeighbors; ++neighborIndex) {
-          std::size_t inducedIndex = fit.data.vecchiaIndices[rowIndex + fit.data.numObservations + neighborIndex];
-          for (std::size_t nodeObsIndex = 0; nodeObsIndex < colNode.numObservations; ++nodeObsIndex) {
-            if (colNode.observationIndices[nodeObsIndex] == inducedIndex) {
-              D(rowIndex, colIndex) -= fit.data.vecchiaVals[rowIndex + fit.data.numObservations + neighborIndex];
-            }
-          }
-        }
-      }
-    }
-std::cout << "IMinusBD\n" << D << std::endl;
-
-//  std::cout << "IMinusBD:\n" << IMinusBDAlt << std::endl;
-  std::cout << "DTLambdaD\n" << IMinusBDAlt.transpose() * IMinusBDAlt << std::endl; 
-Rf_error("Lots of bottom nodes");
-}
-// End of section to remove
-#endif
-    return IMinusBDAlt;
+    return fit.data.adjIMinusB * D;
   }
 
   // This is directly copied in src/dbarts/parameterPrior.cpp - in the future, best to move this to matrixFunctions.cpp
   Eigen::VectorXd Tree::calculateIMinusBR(const BARTFit& fit, const double* R) const {
     size_t numObservations = fit.data.numObservations;
-    Eigen::VectorXd IMinusBR(numObservations);
-    for (size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
-      IMinusBR(colIndex) = R[colIndex];
-      for (size_t neighborIndex = 0; neighborIndex < fit.data.numNeighbors; ++neighborIndex) {
-        size_t inducedIndex = fit.data.vecchiaIndices[colIndex + numObservations * neighborIndex];
-// std::cout << "inducedIndex: " << inducedIndex << std::endl;
-        IMinusBR(colIndex) -= fit.data.vecchiaVals[colIndex + numObservations * neighborIndex] * R[inducedIndex];
-      }
-
-      IMinusBR(colIndex) = IMinusBR(colIndex) / sqrt(fit.data.vecchiaVars[colIndex]);
+    Eigen::VectorXd Rvec(numObservations);
+    for (std::size_t colIndex = 0; colIndex < numObservations; ++numObservations) {
+      Rvec(colIndex) = R[colIndex];
     }
-    
-    return IMinusBR;
+
+    return fit.data.adjIMinusB * Rvec;
   }
 
 }

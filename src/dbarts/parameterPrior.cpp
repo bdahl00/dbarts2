@@ -101,7 +101,7 @@ namespace dbarts {
     
     double sumOfSquaredResiduals;
     // bdahl addition
-    if (fit.data.vecchiaVars == NULL) {
+    if (fit.data.numNeighbors == 0) {
       // bdahl: This part is original
       if (fit.data.weights != NULL) {
         sumOfSquaredResiduals =
@@ -114,27 +114,12 @@ namespace dbarts {
       }
     } else {
       std::size_t numObservations = fit.data.numObservations;
-      /*
-      double* yMinusYHat = new double[numObservations];
-      for (std::size_t obsIndex = 0; obsIndex < numObservations; ++obsIndex) {
-        yMinusYHat[obsIndex] = y[obsIndex] - y_hat[obsIndex];
-      }
-      Eigen::VectorXd IMinusBDiff = calculateIMinusBR(fit, yMinusYHat);
-      */
-      // This is just me copying the calculateIMinusBR function. Is it tidy? No, but it works.
-      // In the long term, this function ought to be moved into matrixFunctions.cpp
-      Eigen::VectorXd IMinusBDiff(numObservations);
+      Eigen::VectorXd diffVec(numObservations);
       for (std::size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
-        IMinusBDiff(colIndex) = y[colIndex] - y_hat[colIndex];
-        for (std::size_t neighborIndex = 0; neighborIndex < fit.data.numNeighbors; ++neighborIndex) {
-          std::size_t inducedIndex = fit.data.vecchiaIndices[colIndex + numObservations + neighborIndex];
-          IMinusBDiff(colIndex) -= fit.data.vecchiaVals[colIndex + numObservations * neighborIndex] * (y[inducedIndex] - y_hat[inducedIndex]);
-        }
-        IMinusBDiff(colIndex) = IMinusBDiff(colIndex) / sqrt(fit.data.vecchiaVars[colIndex]);
+        diffVec(colIndex) = y[colIndex] - y_hat[colIndex];
       }
-      // sumOfSquaredResiduals = IMinusBDiff.adjoint() * IMinusBDiff;
-      sumOfSquaredResiduals = IMinusBDiff.dot(IMinusBDiff);
-      //delete [] yMinusYHat;
+      Eigen::VectorXd adjustedDiffVec = fit.data.adjIMinusB * diffVec;
+      sumOfSquaredResiduals = adjustedDiffVec.dot(adjustedDiffVec);
     }
     // bdahl end of addition
     

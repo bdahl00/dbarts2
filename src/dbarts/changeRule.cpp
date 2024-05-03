@@ -114,7 +114,7 @@ namespace dbarts {
         //get logpri and logL from current tree (X)
         XLogPi = fit.model.treePrior->computeTreeLogProbability(fit, tree);
         // bdahl addition
-        if (fit.data.vecchiaVars == NULL) {
+        if (fit.data.numNeighbors == 0) {
           XLogL = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original
         } else {
           XLogL = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
@@ -151,7 +151,7 @@ namespace dbarts {
         //get logpri and logL from candidate tree (Y)
         YLogPi = fit.model.treePrior->computeTreeLogProbability(fit, tree);
         // bdahl addition
-        if (fit.data.vecchiaVars == NULL) {
+        if (fit.data.numNeighbors == 0) {
           YLogL = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original
         } else {
           YLogL = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
@@ -195,7 +195,7 @@ namespace dbarts {
         //get logpri and logL from current tree (X)
         XLogPi = fit.model.treePrior->computeTreeLogProbability(fit, tree);
         // bdahl addition
-        if (fit.data.vecchiaVars == NULL) {
+        if (fit.data.numNeighbors == 0) {
           XLogL  = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original
         } else {
           XLogL = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
@@ -218,7 +218,7 @@ namespace dbarts {
         //get logpri and logL from candidate tree (Y)
         YLogPi = fit.model.treePrior->computeTreeLogProbability(fit, tree);
         // bdahl addition
-        if (fit.data.vecchiaVars == NULL) {
+        if (fit.data.numNeighbors == 0) {
           YLogL  = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original
         } else {
           YLogL = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);

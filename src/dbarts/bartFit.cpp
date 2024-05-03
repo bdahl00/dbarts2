@@ -1429,7 +1429,7 @@ extern "C" {
         metropolisJumpForTree(fit, chainNum, state.trees[treeNum], chainScratch.treeY, state.sigma, &stepTaken, &ignored);
 // std::cout << "At sampleParametersAndSetFits" << std::endl;
         state.trees[treeNum].sampleParametersAndSetFits(fit, chainNum, currFits, isThinningIteration ? NULL : currTestFits,
-                                                        fit.data.vecchiaVars == NULL ? NULL : chainScratch.treeY); // bdahl: Last argument mine - error here
+                                                        fit.data.numNeighbors == 0 ? NULL : chainScratch.treeY); // bdahl: Last argument mine
         
 // bdahl addition
 // ext_printf("After sampleParametersAndSetFits \n");
