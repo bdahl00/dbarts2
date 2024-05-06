@@ -487,22 +487,6 @@ namespace dbarts {
       double* vecchiaVars = REAL(slotExpr);
 
 
-      Eigen::SparseMatrix<double> B(data.numObservations, data.numObservations);
-/*
-      B.reserve(data.numObservations * (data.numNeighbors + 1)); // - data.numNeighbors * (data.numNeighbors + 1) / 2
-      for (std::size_t colIndex = 0; colIndex < data.numNeighbors; ++colIndex) {
-        for (std::size_t rowIndex = 0; rowIndex < std::min(colIndex, data.numObservations); ++rowIndex) {
-          std::size_t inducedIndex = rowIndex + data.numObservations * colIndex;
-          std::size_t insertColIndex = vecchiaIndices[inducedIndex] - 1;
-          if (insertColIndex >= rowIndex) {
-             std::cout << "We have a problem\n";
-             std::cout << "colIndex: " << colIndex << ", rowIndex: " << rowIndex << ", inducedIndex: " << inducedIndex << ", insertColIndex: " << insertColIndex << std::endl;
-             continue;
-          }
-          B.insert(rowIndex, insertColIndex) = vecchiaVals[inducedIndex]; // This is slow and I know it - look into triplet insertion or something.
-        }
-      }
-*/
       Eigen::SparseMatrix<double> adjIMinusB(data.numObservations, data.numObservations);
       adjIMinusB.reserve(data.numObservations * (data.numNeighbors + 1) - data.numNeighbors * (data.numNeighbors + 1) / 2);
       for (std::size_t rowIndex = 0; rowIndex < data.numObservations; ++rowIndex) {

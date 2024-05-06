@@ -106,24 +106,18 @@ namespace dbarts {
     double u = ext_rng_simulateContinuousUniform(fit.state[chainNum].rng);
     // ext_printf("type: %s; ", u < fit.model.birthOrDeathProbability ? "birth/death" : (u < fit.model.birthOrDeathProbability + fit.model.swapProbability ? "swap" : "change"));
     
-// std::cout << "Random uniform generated: " << u << std::endl;
     if (u < fit.model.birthOrDeathProbability) {
-// std::cout << "Birth or death node" << std::endl;
       alpha = birthOrDeathNode(fit, chainNum, tree, y, sigma, stepTaken, &birthedTree);
       if (birthedTree == true) {
-// std::cout << "Birth step" << std::endl;
         *stepType = BIRTH;
       } else {
-// std::cout << "Death step" << std::endl;
         *stepType = DEATH;
       }
     } else if (u < fit.model.birthOrDeathProbability + fit.model.swapProbability) { 
       alpha = swapRule(fit, chainNum, tree, y, sigma, stepTaken);
-// std::cout << "Swap step" << std::endl;
       *stepType = SWAP;
     } else {
       alpha = changeRule(fit, chainNum, tree, y, sigma, stepTaken);
-// std::cout << "Change step" << std::endl;
       *stepType = CHANGE;
     }
     // const char * const jumpNames[] = { "birth", "death", "swap", "change" };

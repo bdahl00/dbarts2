@@ -118,6 +118,7 @@ if (obsIndex < 20) std::cout << "i: " << i << ", obsIndex: " << obsIndex << ", D
     
     NodeVector bottomNodes(top.getAndEnumerateBottomVector());
     size_t numBottomNodes = bottomNodes.size();
+std::cout << "numBottomNodes: " << numBottomNodes << std::endl;
     
     double* nodeParams = NULL;
     
@@ -526,34 +527,12 @@ namespace dbarts {
         D.insert(colNode.observationIndices[nodeObsIndex], colIndex) = 1;
       }
     }
-/*
-if (numBottomNodes == 3) {
-  std::cout << "D:\n" << D << std::endl;
-  std::cout << "(I - B)D\n" << fit.data.adjIMinusB * D << std::endl;
-  Rf_error("Lots of bottom nodes");
-}
-*/
-//    Eigen::MatrixXd BD = B * D;
-//    std::cout << "D:\n" << D << std::endl;
-//    std::cout << "Left few columns of B:\n" << B.leftCols(4) << std::endl;
-//    std::cout << "BD:\n" << BD << std::endl;
-//std::cout << "Minimum discrepancy: " << (IMinusBD - IMinusBDAlt).minCoeff() << std::endl;
-//std::cout << "Maximum discrepancy: " << (IMinusBD - IMinusBDAlt).maxCoeff() << std::endl;
     return fit.data.adjIMinusB * D;
   }
 
   // This is directly copied in src/dbarts/parameterPrior.cpp - in the future, best to move this to matrixFunctions.cpp
   Eigen::VectorXd Tree::calculateIMinusBR(const BARTFit& fit, const double* R) const {
-    size_t numObservations = fit.data.numObservations;
-    Eigen::VectorXd Rvec(numObservations);
-    for (std::size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
-      Rvec(colIndex) = R[colIndex];
-//      std::cout << "Residual at index " << colIndex << ": " << R[colIndex] << std::endl;
-    }
-//std::cout << "Minimum residual: " << Rvec.minCoeff() << std::endl;
-//std::cout << "Maximum residual: " << Rvec.maxCoeff() << std::endl;
-//std::cout << "Dimensions of Rvec: " << Rvec.rows() << " by " << Rvec.cols() << std::endl;
-//Rf_error("I have to stop it here");
+    Eigen::Map<const Eigen::VectorXd> Rvec(R, fit.data.numObservations);
     return fit.data.adjIMinusB * Rvec;
   }
 

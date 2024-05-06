@@ -1,11 +1,9 @@
-dbarts
+dbarts2
 ======
 
-Discrete Bayesian Additive Regression Trees Sampler
+Spatial Discrete Bayesian Additive Regression Trees Sampler
 
 A package for R, with C/C++.
-
-Pre-built binaries of the package are built by [CRAN](https://cran.r-project.org/package=dbarts). These can be installed from within R using the typical `install.packages()` mechanism.
 
 Steps to install from source:
 
@@ -23,5 +21,5 @@ install.packages("remotes")
 3. Run:
 
 ```R
-remotes::install_github("vdorie/dbarts")
+remotes::install_github("bdahl00/dbarts2")
 ```
