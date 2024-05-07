@@ -712,6 +712,19 @@ dbartsSampler <-
                   plotNode(tree, .self, treePlotPars)
                   
                   invisible(NULL)
+                },
+                # bdahl extension
+                setSpatialStructureFromLocations = function(numNeighbors, distanceMatrix, range = 1, smoothness = 1/2) {
+                  'Most convenient way to supply a distance matrix instead of the Vecchia approximation values implemented earlier'
+                  if (length(data@y) != nrow(distanceMatrix)) stop("Number of rows of distanceMatrix incompatible with length of y")
+                  if (length(data@y) < numNeighbors) stop("Too many neighbors for data provided")
+                  if (range <= 0) stop("Range must be positive")
+                  if (smoothness <= 0) stop("Smoothness must be positive")
+                  if (min(distanceMatrix < 0)) stop("All distances must be positive")
+                  ptr <- getPointer()
+                  .Call(C_dbarts_addSpatialStructureFromLocations, ptr, numNeighbors, distanceMatrix, range, smoothness)
+                  invisible(NULL)
                 }
+                # bdahl end of extension
               ))
 

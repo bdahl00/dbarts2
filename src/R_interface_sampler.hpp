@@ -15,6 +15,7 @@ extern "C" {
   SEXP setData(SEXP fit, SEXP data);
   SEXP setControl(SEXP fit, SEXP control);
   SEXP setModel(SEXP fit, SEXP model);
+  SEXP addSpatialStructureFromLocations(SEXP fit, SEXP numNeighbors, SEXP locs, SEXP rangeParam, SEXP smoothnessParam); // bdahl addition
   
   SEXP predict(SEXP fit, SEXP x_test, SEXP offset_test);
   SEXP setResponse(SEXP fit, SEXP y);
@@ -38,6 +39,7 @@ extern "C" {
   SEXP getTrees(SEXP fit, SEXP chainIndices, SEXP sampleIndices, SEXP treeIndices);
   SEXP printTrees(SEXP fit, SEXP chainIndices, SEXP sampleIndices, SEXP treeIndices);
   
+  double matern(double distance, double range, double smoothness);
 }
 
 #endif

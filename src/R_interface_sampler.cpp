@@ -38,6 +38,11 @@ using std::snprintf;
 
 #include "R_interface.hpp"
 #include "R_interface_common.hpp"
+#include <Eigen/Sparse>
+#include <Eigen/Dense>
+#include <cmath> // Modified Bessel function of the second kind (std::cyl_bessel_k), gamma function (std::tgamma)
+#include <numeric>
+#include <iostream>
 
 #if __cplusplus < 201112L
 #  if defined(_WIN64) || SIZEOF_SIZE_T == 8
@@ -203,6 +208,87 @@ extern "C" {
     
     return resultExpr;
   }
+
+// bdahl addition
+  SEXP addSpatialStructureFromLocations(SEXP fitExpr, SEXP numNeighbors, SEXP locs, SEXP rangeParam, SEXP smoothnessParam) { // Maybe write classes or something - what about haversine or other irregular distances?
+//std::cout << "Function entered." << std::endl;
+    BARTFit* fit = static_cast<BARTFit*>(R_ExternalPtrAddr(fitExpr));
+    fit->data.numNeighbors = static_cast<std::size_t>(REAL(numNeighbors)[0]); // There is surely a better way to do this
+    double range = REAL(rangeParam)[0];
+    double smoothness = REAL(smoothnessParam)[0];
+    // I'm just writing this part for the sake of writing it - distance calculation is going to be tricky, and probably require a bunch of extra arguments
+    int* dims = INTEGER(Rf_getAttrib(locs, R_DimSymbol));
+    std::size_t numObs = static_cast<std::size_t>(dims[0]);
+    double* coords = REAL(locs);
+//    Eigen::SparseMatrix<double> adjIMinusB(numObs, numObs);
+    Eigen::SparseMatrix<double, Eigen::RowMajor> adjIMinusB(numObs, numObs);
+//std::cout << "adjIMinusB initialized" << std::endl;
+//    adjIMinusB.reserve(numObs * (fit->data.numNeighbors - 1) * fit->data.numNeighbors * (fit->data.numNeighbors + 1) / 2);
+    adjIMinusB.reserve(Eigen::VectorXd::Constant(numObs, fit->data.numNeighbors + 1));
+//    std::vector<double> distances(numObs);
+    double* distances = new double[numObs];
+    std::size_t* neighborIndices = new std::size_t[fit->data.numNeighbors];
+    for (std::size_t obsIndex = 1; obsIndex < numObs; ++obsIndex) { // beginning at 1 is intentional
+      for (std::size_t lesserIndex = 0; lesserIndex < obsIndex; ++ lesserIndex) {
+        distances[lesserIndex] = sqrt(pow(coords[lesserIndex] - coords[obsIndex],2) + pow(coords[lesserIndex + numObs] - coords[obsIndex + numObs], 2));
+      }
+      std::vector<double> lesserDists(distances, distances + obsIndex); // This is why beginning at 1 is intentional
+      std::vector<std::size_t> lesserDistsIndices(obsIndex);
+      std::iota(std::begin(lesserDistsIndices), std::end(lesserDistsIndices), 0);
+//std::cout << "lesserDists successfully constructed" << std::endl;
+      std::size_t numNeighbors = std::min(fit->data.numNeighbors, obsIndex);
+      for (std::size_t neighborIndex = 0; neighborIndex < numNeighbors; ++neighborIndex)  {
+        std::size_t minIndex = std::distance(std::begin(lesserDists), std::min_element(std::begin(lesserDists), std::end(lesserDists)));
+//std::cout << "minIndex successfully calculated: " << minIndex << std::endl;
+        neighborIndices[neighborIndex] = lesserDistsIndices.at(minIndex);
+//std::cout << "neighborIndices[neighborIndex] assignment succesfully made: " << neighborIndices[neighborIndex] << std::endl;
+//std::cout << "Length of lesserDists: " << lesserDists.size() << std::endl;
+        if (lesserDists.size() == 1) break;
+        lesserDists.erase(std::begin(lesserDists) + minIndex);
+        lesserDistsIndices.erase(std::begin(lesserDistsIndices) + minIndex);
+//std::cout << "Erase done successfully" << std::endl;
+      } 
+      Eigen::MatrixXd neighborCorMat(numNeighbors, numNeighbors);
+      Eigen::VectorXd neighborCorVec(numNeighbors);
+//std::cout << "Matrix and vector initialized" << std::endl;
+      for (std::size_t rowIndex = 0; rowIndex < numNeighbors; ++rowIndex) {
+        neighborCorMat(rowIndex, rowIndex) = 1;
+//        neighborCorVec(rowIndex) = exp(-distances[neighborIndices[rowIndex]]); // This is going to have to be more flexible 
+        neighborCorVec(rowIndex) = matern(distances[neighborIndices[rowIndex]], range, smoothness);
+//std::cout << "Matern function successfully called" << std::endl;
+        for (std::size_t colIndex = 0; colIndex < rowIndex; ++colIndex) {
+          double dist = sqrt(pow(coords[rowIndex] - coords[colIndex], 2) + pow(coords[rowIndex + numObs] - coords[rowIndex + numObs], 2));
+//          double corval = exp(-dist); // Again, we'll probably want to build a full Matern kernel in here
+          double corval = matern(dist, range, smoothness);
+          neighborCorMat(rowIndex, colIndex) = corval;
+          neighborCorMat(colIndex, rowIndex) = corval;
+        }
+      }
+//std::cout << "Matrix algebra started" << std::endl;
+      Eigen::MatrixXd neighborLambda = neighborCorMat.inverse();
+      Eigen::VectorXd vecchiaVals = neighborLambda * neighborCorVec;
+      double sqrtVecchiaVar = sqrt(1 - neighborCorVec.dot(vecchiaVals));
+//std::cout << "sqrtVecchiaVar calculated" << std::endl;
+//* This is just amazingly slow and I don't understand why
+      adjIMinusB.insert(obsIndex, obsIndex) = 1 / sqrtVecchiaVar;
+      for (std::size_t neighborIndex = 0; neighborIndex < numNeighbors; ++neighborIndex) {
+        adjIMinusB.insert(obsIndex, neighborIndices[neighborIndex]) = vecchiaVals(neighborIndex) / sqrtVecchiaVar;
+      }
+//*/
+//std::cout << "Values inserted properly" << std::endl;
+      fit->data.adjIMinusB = adjIMinusB;
+    }
+    delete [] distances;
+    delete [] neighborIndices;
+    return R_NilValue;
+  }
+
+
+  double matern(double distance, double range, double smoothness) {
+    double funInteriorNumber = sqrt(2 * smoothness) * distance / range;
+    return pow(2, 1 - smoothness) / std::tgamma(smoothness) * pow(funInteriorNumber, smoothness) * std::cyl_bessel_k(smoothness, funInteriorNumber);
+  }
+// bdahl end of addition
   
   SEXP sampleTreesFromPrior(SEXP fitExpr)
   {

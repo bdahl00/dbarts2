@@ -118,7 +118,7 @@ if (obsIndex < 20) std::cout << "i: " << i << ", obsIndex: " << obsIndex << ", D
     
     NodeVector bottomNodes(top.getAndEnumerateBottomVector());
     size_t numBottomNodes = bottomNodes.size();
-std::cout << "numBottomNodes: " << numBottomNodes << std::endl;
+//std::cout << "numBottomNodes: " << numBottomNodes << std::endl;
     
     double* nodeParams = NULL;
     
@@ -518,16 +518,21 @@ namespace dbarts {
   Eigen::MatrixXd Tree::calculateIMinusBD(const BARTFit& fit) const {
     NodeVector bottomNodes(getBottomNodes());
     size_t numBottomNodes = bottomNodes.size();
-// For tomorrow - make sure you're constructing B correctly
     Eigen::SparseMatrix<double> D(fit.data.numObservations, numBottomNodes);
-    D.reserve(fit.data.numObservations);
+//    D.reserve(fit.data.numObservations); // I think this can be optimized - reserve per column
+    std::vector<int> numObsInNode(numBottomNodes);
     for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
-      const Node& colNode(*bottomNodes[colIndex]);
-      for (std::size_t nodeObsIndex = 0; nodeObsIndex < colNode.numObservations; ++nodeObsIndex) {
-        D.insert(colNode.observationIndices[nodeObsIndex], colIndex) = 1;
+      numObsInNode.at(colIndex) = static_cast<int>(bottomNodes[colIndex]->numObservations);
+    }
+    D.reserve(numObsInNode);
+    for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
+      //const Node& colNode(*bottomNodes[colIndex]);
+      for (std::size_t nodeObsIndex = 0; nodeObsIndex < /*colNode.numObservations*/ bottomNodes[colIndex]->numObservations; ++nodeObsIndex) {
+        //D.insert(colNode.observationIndices[nodeObsIndex], colIndex) = 1;
+        D.insert(bottomNodes[colIndex]->observationIndices[nodeObsIndex], colIndex) = 1;
       }
     }
-    return fit.data.adjIMinusB * D;
+    return (fit.data.adjIMinusB * D).pruned(); // Not clear if this is faster, but it probably is 
   }
 
   // This is directly copied in src/dbarts/parameterPrior.cpp - in the future, best to move this to matrixFunctions.cpp

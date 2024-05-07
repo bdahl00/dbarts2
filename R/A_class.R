@@ -290,3 +290,15 @@ methods::setClass("dbartsState",
                k          = "numericOrNULL",
                rng.state  = "integer"))
 
+# bdahl addition
+methods::setClass("precisCholesky",
+  slots = list(numNeighbors = "integer",
+               adjIMinusBD  = "matrix"),
+  prototype = list(numNeighbors = integer(0),
+                   adjIMinusBD  = matrix(0, 0, 0)))
+methods::setValidity("precisCholesky",
+  function(object) {
+    if (nrow(object@adjIMinusBD) != numNeighbors) return("Not even really sure this should be an error")
+    TRUE
+  })
+# bdahl end of addition

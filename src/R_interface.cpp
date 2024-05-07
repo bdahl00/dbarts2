@@ -381,6 +381,8 @@ extern "C" {
     DEF_FUNC("dbarts_getMaxSIMDInstructionSet", getMaxSIMDInstructionSet, 0),
     
     DEF_FUNC("rbart_fitted", rbart_getFitted, 4),
+    // bdahl extension
+    DEF_FUNC("dbarts_addSpatialStructureFromLocations", addSpatialStructureFromLocations, 5),
     { NULL, NULL, 0 }
   };
 
