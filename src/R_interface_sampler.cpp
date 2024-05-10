@@ -210,12 +210,15 @@ extern "C" {
   }
 
 // bdahl addition
-  SEXP addSpatialStructureFromLocations(SEXP fitExpr, SEXP numNeighbors, SEXP locs, SEXP rangeParam, SEXP smoothnessParam) { // Maybe write classes or something - what about haversine or other irregular distances?
-//std::cout << "Function entered." << std::endl;
+  SEXP setSpatialStructureFromLocations(SEXP fitExpr, SEXP numNeighbors, SEXP locs, SEXP rangeParam, SEXP smoothnessParam) { // Maybe write classes or something - what about haversine or other irregular distances?
     BARTFit* fit = static_cast<BARTFit*>(R_ExternalPtrAddr(fitExpr));
+    if (fit == NULL) Rf_error("dbarts_setSpatialStructureFromLocations called on NULL external pointer");
+//std::cout << "Function entered." << std::endl;
     fit->data.numNeighbors = static_cast<std::size_t>(REAL(numNeighbors)[0]); // There is surely a better way to do this
     double range = REAL(rangeParam)[0];
     double smoothness = REAL(smoothnessParam)[0];
+    fit->data.range = range;
+    fit->data.smoothness = smoothness;
     // I'm just writing this part for the sake of writing it - distance calculation is going to be tricky, and probably require a bunch of extra arguments
     int* dims = INTEGER(Rf_getAttrib(locs, R_DimSymbol));
     std::size_t numObs = static_cast<std::size_t>(dims[0]);
@@ -287,6 +290,38 @@ extern "C" {
   double matern(double distance, double range, double smoothness) {
     double funInteriorNumber = sqrt(2 * smoothness) * distance / range;
     return pow(2, 1 - smoothness) / std::tgamma(smoothness) * pow(funInteriorNumber, smoothness) * std::cyl_bessel_k(smoothness, funInteriorNumber);
+  }
+
+  SEXP setSpatialStructureFromNeighbors(SEXP fitExpr, SEXP vecchiaIndicesExpr, SEXP vecchiaValsExpr, SEXP vecchiaVarsExpr) {
+    // Implement later
+    BARTFit* fit = static_cast<BARTFit*>(R_ExternalPtrAddr(fitExpr));
+    if (fit == NULL) Rf_error("dbarts_setSpatialStructureFromNeighbors called on NULL external pointer");
+    return R_NilValue;
+  }
+
+  SEXP setTestSpatialStructureFromLocations(SEXP fitExpr, SEXP locs) {
+    // Implement later
+    BARTFit* fit = static_cast<BARTFit*>(R_ExternalPtrAddr(fitExpr));
+    if (fit == NULL) Rf_error("dbarts_setTestSpatialStructureFromLocations called on NULL external pointer");
+
+    return R_NilValue;
+  }
+
+  SEXP setTestSpatialStructureFromNeighbors(SEXP fitExpr, SEXP testVecchiaIndicesExpr, SEXP testVecchiaValsExpr) {
+    // Dimension checking should already have been performed
+    BARTFit* fit = static_cast<BARTFit*>(R_ExternalPtrAddr(fitExpr));
+    if (fit->data.numTestObservations == 0) Rf_error("Test information should have been included in original dbarts function call");
+    if (fit->data.numNeighbors == 0) Rf_error("Spatial structure among training observations should already have been induced via setSpatialStructureFromNeighbors");
+    if (fit == NULL) Rf_error("dbarts_setTestSpatialStructureFromNeighbors called on NULL external pointer");
+
+    int* testNeighborsAsInt = INTEGER(testVecchiaIndicesExpr); // Memory leak here?
+    std::size_t* testNeighborsAsSizeT = new std::size_t[fit->data.numTestObservations * fit->data.numNeighbors];
+    for (std::size_t testObsIndex = 0; testObsIndex < fit->data.numTestObservations * fit->data.numNeighbors; ++testObsIndex) {
+      testNeighborsAsSizeT[testObsIndex] = static_cast<std::size_t>(testNeighborsAsInt[testObsIndex]);
+    }
+    fit->data.testNeighbors = testNeighborsAsSizeT;
+    fit->data.testNeighborDeviationWeights = REAL(testVecchiaValsExpr);
+    return R_NilValue;
   }
 // bdahl end of addition
   

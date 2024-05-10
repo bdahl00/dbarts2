@@ -126,7 +126,7 @@ namespace dbarts {
     double posteriorDegreesOfFreedom = degreesOfFreedom + static_cast<double>(data.numObservations);
     
     double posteriorScale = degreesOfFreedom * scale + sumOfSquaredResiduals;
-// std::cout << "Sum of squared residuals: " << sumOfSquaredResiduals << std::endl; // bdahl addition 
+std::cout << "Sum of squared residuals: " << sumOfSquaredResiduals << std::endl; // bdahl addition 
     return posteriorScale / ext_rng_simulateChiSquared(fit.state[chainNum].rng, posteriorDegreesOfFreedom);
   }
   

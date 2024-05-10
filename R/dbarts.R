@@ -722,7 +722,22 @@ dbartsSampler <-
                   if (smoothness <= 0) stop("Smoothness must be positive")
                   if (min(distanceMatrix < 0)) stop("All distances must be positive")
                   ptr <- getPointer()
-                  .Call(C_dbarts_addSpatialStructureFromLocations, ptr, numNeighbors, distanceMatrix, range, smoothness)
+                  .Call(C_dbarts_setSpatialStructureFromLocations, ptr, numNeighbors, distanceMatrix, range, smoothness)
+                  invisible(NULL)
+                },
+                setSpatialStructureFromNeighbors = function(vecchiaIndices, vecchiaVals, vecchiaVars) {
+                  invisible(NULL)
+                },
+                setTestSpatialStructureFromLocations = function(locs) {
+                  invisible(NULL)
+                },
+                setTestSpatialStructureFromNeighbors = function(testVecchiaIndices, testVecchiaVals) {
+                  'Set test spatial structure using user-supplied dependence structure'
+                  if (nrow(data@x.test) != nrow(testVecchiaIndices)) stop("Number of rows of testVecchiaIndices incompatible with x.test")
+                  if (nrow(data@x.test) != nrow(testVecchiaVals)) stop("Number of rows of testVecchiaVars incompatible with x.test")
+                  if (ncol(testVecchiaIndices) != ncol(testVecchiaVals)) stop("Dimensions of testVecchiaIndices and testVecchiaVars incompatible")
+                  ptr <- getPointer()
+                  .Call(C_dbarts_setTestSpatialStructureFromNeighbors, ptr, testVecchiaIndices, testVecchiaVals)
                   invisible(NULL)
                 }
                 # bdahl end of extension

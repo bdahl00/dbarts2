@@ -1415,6 +1415,10 @@ extern "C" {
       
 // std::cout << "Tree iteration for loop reached" << std::endl;
       for (size_t treeNum = 0; treeNum < control.numTrees; ++treeNum) {
+// bdahl addition
+//std::cout << state.sigma << std::endl;
+//        if (fit.data.numNeighbors != 0) state.trees[treeNum].setFullCondVar(fit, state.sigma);
+// bdahl end of addition
         double* oldTreeFits = state.treeFits + treeNum * state.treeFitsStride;
         
         // treeY = y - (totalFits - oldTreeFits)
@@ -1438,8 +1442,9 @@ extern "C" {
         vec.subtractVectorsInPlace(const_cast<const double*>(oldTreeFits), data.numObservations, chainScratch.totalFits);
         vec.addVectorsInPlace(const_cast<const double*>(currFits), data.numObservations, chainScratch.totalFits);
         
-        if (!isThinningIteration && data.numTestObservations > 0)
+        if (!isThinningIteration && data.numTestObservations > 0) {
           misc_addVectorsInPlace(const_cast<const double*>(currTestFits), data.numTestObservations, chainScratch.totalTestFits);
+        }
         
         std::memcpy(oldTreeFits, const_cast<const double*>(currFits), data.numObservations * sizeof(double));
       }
@@ -1468,7 +1473,24 @@ extern "C" {
         // overwriting after that
         for (size_t j = 0; j < fit.data.numPredictors; ++j) variableCounts[j] = 0;
         countVariableUses(fit, state, variableCounts);
-        
+#if 0
+        // bdahl addition
+        if (fit.data.numNeighbors != 0) {
+          for (std::size_t testObsIndex = 0; testObsIndex < fit.data.numTestObservations; ++testObsIndex) {
+            double adjustment = 0.0;
+            for (std::size_t neighborIndex = 0; neighborIndex < fit.data.numNeighbors; ++neighborIndex) {
+              std::size_t inducedIndex = testObsIndex + fit.data.numTestObservations * neighborIndex;
+              std::size_t yIndexOfNeighbor = fit.data.testNeighbors[inducedIndex] - 1; // 1 vs 0 based indexing
+              adjustment += fit.data.testNeighborDeviationWeights[inducedIndex] *
+                (fit.data.y[yIndexOfNeighbor] - chainScratch.totalFits[yIndexOfNeighbor]); 
+            }
+            chainScratch.totalTestFits[testObsIndex] += adjustment;
+std::cout << "Adjustment: " << adjustment << std::endl;
+std::cout << "Adjusted mean: " << chainScratch.totalTestFits[testObsIndex] << std::endl;
+          }
+        }
+        // bdahl end of addition
+#endif
         storeSamples(fit, chainNum, results, chainScratch.totalFits, chainScratch.totalTestFits, state.sigma,
                      state.k, variableCounts, resultSampleNum);
           
@@ -2285,8 +2307,25 @@ namespace {
       if (data.numTestObservations > 0) {
         double* testSamples = results.testSamples + (simNum + chainStride) * data.numTestObservations;
         misc_setVectorToConstant(testSamples, data.numTestObservations, sharedScratch.dataScale.range * 0.5 + sharedScratch.dataScale.min);
+        // bdahl note: Fourth argument augmented by multiple of first
         misc_addVectorsInPlaceWithMultiplier(testSample, data.numTestObservations, sharedScratch.dataScale.range, testSamples);
         if (data.testOffset != NULL) misc_addVectorsInPlace(data.testOffset, data.numTestObservations, testSamples);
+// bdahl note - I suppose the update has to happen here?
+// bdahl addition
+        if (fit.data.numNeighbors != 0) {
+          for (std::size_t testObsIndex = 0; testObsIndex < fit.data.numTestObservations; ++testObsIndex) {
+            double adjustment = 0.0;
+            for (std::size_t neighborIndex = 0; neighborIndex < fit.data.numNeighbors; ++neighborIndex) {
+              std::size_t inducedIndex = testObsIndex + fit.data.numTestObservations * neighborIndex;
+              std::size_t yIndexOfNeighbor = fit.data.testNeighbors[inducedIndex] - 1; // 1 vs 0 based indexing
+              adjustment += fit.data.testNeighborDeviationWeights[inducedIndex] *
+                (fit.data.y[yIndexOfNeighbor] - results.trainingSamples[yIndexOfNeighbor]); 
+            }
+            testSamples[testObsIndex] += adjustment;
+          }
+        }
+        // bdahl end of addition
+
       }
        
       results.sigmaSamples[simNum + chainStride] = sigma * sharedScratch.dataScale.range;

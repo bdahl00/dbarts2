@@ -19,6 +19,7 @@
 #include "matrixFunctions.hpp"
 #include "node.hpp"
 #include "tree.hpp"
+#include <iostream>
 
 using std::size_t;
 using std::uint32_t;

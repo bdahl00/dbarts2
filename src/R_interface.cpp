@@ -382,7 +382,10 @@ extern "C" {
     
     DEF_FUNC("rbart_fitted", rbart_getFitted, 4),
     // bdahl extension
-    DEF_FUNC("dbarts_addSpatialStructureFromLocations", addSpatialStructureFromLocations, 5),
+    DEF_FUNC("dbarts_setSpatialStructureFromLocations", setSpatialStructureFromLocations, 5),
+    DEF_FUNC("dbarts_setSpatialStructureFromNeighbors", setSpatialStructureFromNeighbors, 4),
+    DEF_FUNC("dbarts_setTestSpatialStructureFromLocations", setTestSpatialStructureFromLocations, 2),
+    DEF_FUNC("dbarts_setTestSpatialStructureFromNeighbors", setTestSpatialStructureFromNeighbors, 3),
     { NULL, NULL, 0 }
   };
 

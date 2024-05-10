@@ -18,6 +18,12 @@ namespace dbarts {
   
   struct Tree {
     Node top;
+# if 0
+    Eigen::MatrixXd IMinusBD;
+    Eigen::MatrixXd commonFullCondVar;
+    Eigen::MatrixXd L; // Lower Cholesky factor of commonFullCondVar
+    double fullCondVarHalfLogDeterminant;
+#endif
     
     Tree(std::size_t* indices, std::size_t numObservations, std::size_t numPredictors) : top(indices, numObservations, numPredictors) { }
     
@@ -67,6 +73,8 @@ namespace dbarts {
 // bdahl addition
     Eigen::MatrixXd calculateIMinusBD(const BARTFit& fit) const;
     Eigen::VectorXd calculateIMinusBR(const BARTFit& fit, const double* R) const;
+    //void setFullCondVar(const BARTFit& fit, double sigma, std::size_t chainNum); // Should only be called if fit.data.numNeighbors != 0, enforced
+                                                           // Must be called at the end of every MCMC loop, not enforced
 // bdahl end of addition
   };
   
