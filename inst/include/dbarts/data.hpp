@@ -19,10 +19,13 @@ namespace dbarts {
 
     std::size_t numNeighbors;
     Eigen::SparseMatrix<double> adjIMinusB;
+    const double* coords;
     double range;
     double smoothness;
     const std::size_t* testNeighbors;
     const double* testNeighborDeviationWeights;
+    const double* testNeighborVecchiaVars;
+    bool setFromNeighbors;
 
     std::size_t numObservations;
     std::size_t numPredictors;
@@ -34,7 +37,8 @@ namespace dbarts {
     
     Data() :
       y(NULL), x(NULL), x_test(NULL), weights(NULL), offset(NULL), testOffset(NULL),
-      numNeighbors(0), range(0.0), smoothness(0.0), testNeighbors(NULL), testNeighborDeviationWeights(NULL),
+      numNeighbors(0), coords(NULL), range(0.0), smoothness(0.0),
+      testNeighbors(NULL), testNeighborDeviationWeights(NULL), testNeighborVecchiaVars(NULL), setFromNeighbors(false),
       numObservations(0), numPredictors(0), numTestObservations(0),
       sigmaEstimate(1.0), variableTypes(NULL), maxNumCuts(NULL)
     {
@@ -55,7 +59,8 @@ namespace dbarts {
          const VariableType* variableTypes,
          const std::uint32_t* maxNumCuts) :
       y(y), x(x), x_test(x_test), weights(weights), offset(offset), testOffset(testOffset),
-      numNeighbors(0), range(0.0), smoothness(0.0), testNeighbors(NULL), testNeighborDeviationWeights(NULL),
+      numNeighbors(0), coords(NULL), range(0.0), smoothness(0.0),
+      testNeighbors(NULL), testNeighborDeviationWeights(NULL), testNeighborVecchiaVars(NULL), setFromNeighbors(false),
       numObservations(numObservations), numPredictors(numPredictors), numTestObservations(numTestObservations),
       sigmaEstimate(sigmaEstimate), variableTypes(variableTypes), maxNumCuts(maxNumCuts)
     {
@@ -79,8 +84,8 @@ namespace dbarts {
          const VariableType* variableTypes,
          const std::uint32_t* maxNumCust) :
       y(y), x(x), x_test(x_test), weights(weights), offset(offset), testOffset(testOffset),
-      adjIMinusB(adjIMinusB), numNeighbors(numNeighbors), range(0.0), smoothness(0.0),
-      testNeighbors(NULL), testNeighborDeviationWeights(NULL),
+      adjIMinusB(adjIMinusB), numNeighbors(numNeighbors), coords(NULL), range(0.0), smoothness(0.0),
+      testNeighbors(NULL), testNeighborDeviationWeights(NULL), testNeighborVecchiaVars(NULL), setFromNeighbors(false),
       numObservations(numObservations), numPredictors(numPredictors), numTestObservations(numTestObservations),
       sigmaEstimate(sigmaEstimate), variableTypes(variableTypes), maxNumCuts(maxNumCuts)
     {

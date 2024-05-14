@@ -18,7 +18,7 @@ extern "C" {
   SEXP setSpatialStructureFromLocations(SEXP fit, SEXP numNeighbors, SEXP locs, SEXP rangeParam, SEXP smoothnessParam); // bdahl addition
   SEXP setSpatialStructureFromNeighbors(SEXP fit, SEXP vecchiaIndices, SEXP vecchiaVals, SEXP vecchiaVars); // Eventually deprecate the extra arguments in the dbarts function
   SEXP setTestSpatialStructureFromLocations(SEXP fit, SEXP locs); // addSpatialStructureFromLocations MUST have been called first
-  SEXP setTestSpatialStructureFromNeighbors(SEXP fit, SEXP testVecchiaIndices, SEXP testVecchiaVals); // bdahl addition
+  SEXP setTestSpatialStructureFromNeighbors(SEXP fit, SEXP testVecchiaIndices, SEXP testVecchiaVals, SEXP testVecchiaVars); // bdahl addition
   
   SEXP predict(SEXP fit, SEXP x_test, SEXP offset_test);
   SEXP setResponse(SEXP fit, SEXP y);

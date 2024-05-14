@@ -213,6 +213,7 @@ extern "C" {
   SEXP setSpatialStructureFromLocations(SEXP fitExpr, SEXP numNeighbors, SEXP locs, SEXP rangeParam, SEXP smoothnessParam) { // Maybe write classes or something - what about haversine or other irregular distances?
     BARTFit* fit = static_cast<BARTFit*>(R_ExternalPtrAddr(fitExpr));
     if (fit == NULL) Rf_error("dbarts_setSpatialStructureFromLocations called on NULL external pointer");
+    if (fit->data.setFromNeighbors) Rf_error("setSpatialStructureFromLocations cannot be called after setSpatialStructureFromNeighbors");
 //std::cout << "Function entered." << std::endl;
     fit->data.numNeighbors = static_cast<std::size_t>(REAL(numNeighbors)[0]); // There is surely a better way to do this
     double range = REAL(rangeParam)[0];
@@ -223,6 +224,7 @@ extern "C" {
     int* dims = INTEGER(Rf_getAttrib(locs, R_DimSymbol));
     std::size_t numObs = static_cast<std::size_t>(dims[0]);
     double* coords = REAL(locs);
+    fit->data.coords = coords;
 //    Eigen::SparseMatrix<double> adjIMinusB(numObs, numObs);
     Eigen::SparseMatrix<double, Eigen::RowMajor> adjIMinusB(numObs, numObs);
 //std::cout << "adjIMinusB initialized" << std::endl;
@@ -260,7 +262,9 @@ extern "C" {
         neighborCorVec(rowIndex) = matern(distances[neighborIndices[rowIndex]], range, smoothness);
 //std::cout << "Matern function successfully called" << std::endl;
         for (std::size_t colIndex = 0; colIndex < rowIndex; ++colIndex) {
-          double dist = sqrt(pow(coords[rowIndex] - coords[colIndex], 2) + pow(coords[rowIndex + numObs] - coords[rowIndex + numObs], 2));
+// There's an issue with this - figure it out on Monday morning.
+          double dist = sqrt(pow(coords[neighborIndices[rowIndex]] - coords[neighborIndices[colIndex]], 2) + 
+                             pow(coords[neighborIndices[rowIndex] + numObs] - coords[neighborIndices[colIndex] + numObs], 2));
 //          double corval = exp(-dist); // Again, we'll probably want to build a full Matern kernel in here
           double corval = matern(dist, range, smoothness);
           neighborCorMat(rowIndex, colIndex) = corval;
@@ -296,6 +300,37 @@ extern "C" {
     // Implement later
     BARTFit* fit = static_cast<BARTFit*>(R_ExternalPtrAddr(fitExpr));
     if (fit == NULL) Rf_error("dbarts_setSpatialStructureFromNeighbors called on NULL external pointer");
+    if (fit->data.range != 0.0) Rf_error("setSpatialStructureFromNeighbors cannot be called after setSpatialStructureFromLocations");
+    fit->data.setFromNeighbors = true;
+    int* dims = INTEGER(Rf_getAttrib(vecchiaIndicesExpr, R_DimSymbol));
+    const std::size_t totLength = static_cast<std::size_t>(dims[0] * dims[1]);
+    fit->data.numNeighbors = static_cast<std::size_t>(dims[1]);
+    double* vecchiaIndicesAsDouble = REAL(vecchiaIndicesExpr);
+    std::size_t* vecchiaIndices = new std::size_t[totLength];
+    for (std::size_t i = 0; i < totLength; ++i) {
+      // Beati quorum via integra est
+      vecchiaIndices[i] = static_cast<std::size_t>(vecchiaIndicesAsDouble[i]);
+    }
+    double* vecchiaVals = REAL(vecchiaValsExpr);
+    double* vecchiaVars = REAL(vecchiaVarsExpr);
+    
+    std::size_t numObs = static_cast<std::size_t>(dims[0]);
+    Eigen::SparseMatrix<double, Eigen::RowMajor> adjIMinusB(numObs, numObs);
+    adjIMinusB.reserve(Eigen::VectorXd::Constant(numObs, fit->data.numNeighbors + 1));
+
+    for (std::size_t rowIndex = 0; rowIndex < numObs; ++rowIndex) {
+      adjIMinusB.insert(rowIndex, rowIndex) = 1 / sqrt(vecchiaVars[rowIndex]);
+      for (std::size_t compressedColIndex = 0; compressedColIndex < std::min(rowIndex, fit->data.numNeighbors); ++compressedColIndex) {
+        std::size_t inducedIndex = rowIndex + numObs * compressedColIndex;
+        std::size_t colIndex = vecchiaIndices[inducedIndex] - 1; // Accounting for 1-indexing (R) vs 0-indexing (C++)
+        if (colIndex >= rowIndex) {
+          Rf_error("vecchiaIndices is misspecified - current observation conditions on a future observation");
+        }
+        adjIMinusB.insert(rowIndex, colIndex) = -vecchiaVals[inducedIndex] / sqrt(vecchiaVars[rowIndex]);
+      }
+    }
+    fit->data.adjIMinusB = adjIMinusB;
+    delete [] vecchiaIndices;
     return R_NilValue;
   }
 
@@ -303,11 +338,63 @@ extern "C" {
     // Implement later
     BARTFit* fit = static_cast<BARTFit*>(R_ExternalPtrAddr(fitExpr));
     if (fit == NULL) Rf_error("dbarts_setTestSpatialStructureFromLocations called on NULL external pointer");
-
+    if (fit->data.range == 0.0) Rf_error("setTestSpatialStructureFromLocations cannot be called without first calling setSpatialStructureFromLocations");
+    double* testCoords = REAL(locs);
+    int* dims = INTEGER(Rf_getAttrib(locs, R_DimSymbol)); // [0] is nrow, [1] is ncol
+    std::size_t numTestObs = static_cast<std::size_t>(dims[0]);
+    std::size_t numNeighbors = fit->data.numNeighbors;
+    std::size_t numTrainObs = fit->data.numObservations;
+    double* distances = new double[numTrainObs];
+    std::size_t* neighborIndices = new std::size_t[numNeighbors];
+    double range = fit->data.range;
+    double smoothness = fit->data.smoothness;
+    std::size_t* testVecchiaIndices = new std::size_t[numTestObs * numNeighbors];
+    double* testVecchiaVals = new double[numTestObs * numNeighbors];
+    double* testVecchiaVars = new double[numTestObs];
+    for (std::size_t testObsIndex = 0; testObsIndex < numTestObs; ++testObsIndex) {
+      for (std::size_t trainObsIndex = 0; trainObsIndex < numTrainObs; ++trainObsIndex) {
+        distances[trainObsIndex] = sqrt(pow(fit->data.coords[trainObsIndex] - testCoords[testObsIndex], 2) + 
+                                        pow(fit->data.coords[trainObsIndex + numTrainObs] - testCoords[testObsIndex + numTestObs], 2));
+      }
+      std::vector<double> distVec(distances, distances + numTrainObs);
+      std::vector<std::size_t> distVecIndices(numTrainObs);
+      std::iota(std::begin(distVecIndices), std::end(distVecIndices), 0);
+      for (std::size_t neighborIndex = 0; neighborIndex < numNeighbors; ++neighborIndex) {
+        std::size_t minIndex = std::distance(std::begin(distVec), std::min_element(std::begin(distVec), std::end(distVec)));
+        neighborIndices[neighborIndex] = distVecIndices.at(minIndex);
+        if (distVec.size() == 1) break;
+        distVec.erase(std::begin(distVec) + minIndex);
+        distVecIndices.erase(std::begin(distVecIndices) + minIndex);
+      }
+      Eigen::MatrixXd neighborCorMat(numNeighbors, numNeighbors);
+      Eigen::VectorXd neighborCorVec(numNeighbors);
+      for (std::size_t rowIndex = 0; rowIndex < numNeighbors; ++rowIndex) {
+        neighborCorMat(rowIndex, rowIndex) = 1;
+        neighborCorVec(rowIndex) = matern(distances[neighborIndices[rowIndex]], range, smoothness);
+        for (std::size_t colIndex = 0; colIndex < rowIndex; ++colIndex) {
+          double dist = sqrt(pow(fit->data.coords[neighborIndices[rowIndex]] - fit->data.coords[neighborIndices[colIndex]], 2) +
+                             pow(fit->data.coords[neighborIndices[rowIndex] + numTrainObs] - fit->data.coords[neighborIndices[colIndex] + numTrainObs], 2));
+          // This needs to be fixed in the training function
+          double corval = matern(dist, range, smoothness);
+          neighborCorMat(rowIndex, colIndex) = corval;
+          neighborCorMat(colIndex, rowIndex) = corval;
+        }
+      }
+      Eigen::MatrixXd neighborPrecis = neighborCorMat.inverse();
+      Eigen::VectorXd weightVec = neighborPrecis * neighborCorVec;
+      for (std::size_t vecchiaIndex = 0; vecchiaIndex < numNeighbors; ++vecchiaIndex) {
+        std::size_t inducedIndex = testObsIndex + numTestObs * vecchiaIndex;
+        testVecchiaIndices[inducedIndex] = neighborIndices[vecchiaIndex];
+        testVecchiaVals[inducedIndex] = weightVec[vecchiaIndex];
+      }
+      testVecchiaVars[testObsIndex] = 1.0 - neighborCorVec.dot(weightVec);
+    }
+    delete [] distances;
+    delete [] neighborIndices;
     return R_NilValue;
   }
 
-  SEXP setTestSpatialStructureFromNeighbors(SEXP fitExpr, SEXP testVecchiaIndicesExpr, SEXP testVecchiaValsExpr) {
+  SEXP setTestSpatialStructureFromNeighbors(SEXP fitExpr, SEXP testVecchiaIndicesExpr, SEXP testVecchiaValsExpr, SEXP testVecchiaVarsExpr) {
     // Dimension checking should already have been performed
     BARTFit* fit = static_cast<BARTFit*>(R_ExternalPtrAddr(fitExpr));
     if (fit->data.numTestObservations == 0) Rf_error("Test information should have been included in original dbarts function call");
@@ -321,6 +408,7 @@ extern "C" {
     }
     fit->data.testNeighbors = testNeighborsAsSizeT;
     fit->data.testNeighborDeviationWeights = REAL(testVecchiaValsExpr);
+    fit->data.testNeighborVecchiaVars = REAL(testVecchiaVarsExpr);
     return R_NilValue;
   }
 // bdahl end of addition

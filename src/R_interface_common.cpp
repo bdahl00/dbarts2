@@ -457,6 +457,7 @@ namespace dbarts {
       Eigen::SparseMatrix<double> adjIMinusB(1,1);
       data.adjIMinusB = adjIMinusB;
     } else {
+      Rf_error("Passing spatial structure data objects as arguments to dbarts is deprecated. Please use the setSpatialStructureFromNeighbors method available to dbarts objects instead.");
       // Just copy pretty much everything into here - worry about exceptions and things later
        if (!Rf_isReal(slotExpr)) Rf_error("vecchiaIndices must be of type real"); // This is potentially problematic
       // See block below for assertion problems - I'm not really sure what it means

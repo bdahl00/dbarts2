@@ -714,30 +714,44 @@ dbartsSampler <-
                   invisible(NULL)
                 },
                 # bdahl extension
-                setSpatialStructureFromLocations = function(numNeighbors, distanceMatrix, range = 1, smoothness = 1/2) {
+                setSpatialStructureFromLocations = function(numNeighbors, coordinates, range = 1, smoothness = 1/2) {
                   'Most convenient way to supply a distance matrix instead of the Vecchia approximation values implemented earlier'
-                  if (length(data@y) != nrow(distanceMatrix)) stop("Number of rows of distanceMatrix incompatible with length of y")
+                  if (length(data@y) != nrow(coordinates)) stop("Number of rows of coordinates incompatible with length of y")
                   if (length(data@y) < numNeighbors) stop("Too many neighbors for data provided")
                   if (range <= 0) stop("Range must be positive")
                   if (smoothness <= 0) stop("Smoothness must be positive")
-                  if (min(distanceMatrix < 0)) stop("All distances must be positive")
+                  coords = as.matrix(coordinates)
+                  if (ncol(coords) != 2) stop("coordinates must be coercible to a matrix with two columns.")
                   ptr <- getPointer()
-                  .Call(C_dbarts_setSpatialStructureFromLocations, ptr, numNeighbors, distanceMatrix, range, smoothness)
+                  .Call(C_dbarts_setSpatialStructureFromLocations, ptr, numNeighbors, coords, range, smoothness)
                   invisible(NULL)
                 },
                 setSpatialStructureFromNeighbors = function(vecchiaIndices, vecchiaVals, vecchiaVars) {
+                  'Set spatial structure using user-supplied dependence structure'
+                  if (nrow(data@x) != nrow(vecchiaIndices)) stop("Number of rows of vecchiaIndices incompatible with x")
+                  if (nrow(data@x) != nrow(vecchiaVals)) stop("Number of rows of vecchiaVars incompatible with x")
+                  if (ncol(vecchiaIndices) != ncol(vecchiaVals)) stop("Dimensions of vecchiaIndices and vecchiaVars incompatible")
+                  if (nrow(vecchiaIndices) != length(vecchiaVars)) stop("Length of vecchiaVars incompatible with dimensions of vecchiaIndices and vecchiaVals")
+                  ptr <- getPointer()
+                  .Call(C_dbarts_setSpatialStructureFromNeighbors, ptr, vecchiaIndices, vecchiaVals, vecchiaVars)
                   invisible(NULL)
                 },
-                setTestSpatialStructureFromLocations = function(locs) {
+                setTestSpatialStructureFromLocations = function(coordinates) {
+                  'Set test spatial structure using coordinates'
+                  coords = as.matrix(coordinates)
+                  if (ncol(coords) != 2) stop("coordinates must be coercible to a matrix with two columns.")
+                  ptr <- getPointer()
+                  .Call(C_dbarts_setTestSpatialStructureFromLocations, ptr, coords)
                   invisible(NULL)
                 },
-                setTestSpatialStructureFromNeighbors = function(testVecchiaIndices, testVecchiaVals) {
+                setTestSpatialStructureFromNeighbors = function(testVecchiaIndices, testVecchiaVals, testVecchiaVars) {
                   'Set test spatial structure using user-supplied dependence structure'
                   if (nrow(data@x.test) != nrow(testVecchiaIndices)) stop("Number of rows of testVecchiaIndices incompatible with x.test")
                   if (nrow(data@x.test) != nrow(testVecchiaVals)) stop("Number of rows of testVecchiaVars incompatible with x.test")
                   if (ncol(testVecchiaIndices) != ncol(testVecchiaVals)) stop("Dimensions of testVecchiaIndices and testVecchiaVars incompatible")
+                  if (nrow(testVecchiaIndices) != length(testVecchiaVars)) stop ("Length of testVecchiaVars incompatible with dimensions of textVecchiaIndices and testVecchiaVals")
                   ptr <- getPointer()
-                  .Call(C_dbarts_setTestSpatialStructureFromNeighbors, ptr, testVecchiaIndices, testVecchiaVals)
+                  .Call(C_dbarts_setTestSpatialStructureFromNeighbors, ptr, testVecchiaIndices, testVecchiaVals, testVecchiaVars)
                   invisible(NULL)
                 }
                 # bdahl end of extension

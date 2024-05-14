@@ -178,25 +178,6 @@ if (obsIndex < 20) std::cout << "i: " << i << ", obsIndex: " << obsIndex << ", D
     if (testFits != NULL) {
       size_t* observationNodeMap = createObservationToNodeIndexMap(fit, top, fit.sharedScratch.xt_test, fit.data.numTestObservations);
       for (size_t i = 0; i < fit.data.numTestObservations; ++i) testFits[i] = nodeParams[observationNodeMap[i]];
-#if 0
-// bdahl addition - keep for reference
-      if (fit.data.numNeighbors != 0) {
-        for (std::size_t testObsIndex = 0; testObsIndex < fit.data.numTestObservations; ++testObsIndex) {
-          double adjustment = 0.0;
-          for (std::size_t neighborIndex = 0; neighborIndex < fit.data.numNeighbors; ++neighborIndex) {
-            adjustment +=
-           // testFits[testObsIndex] += 
-                         fit.data.testNeighborDeviationWeights[testObsIndex + fit.data.numTestObservations * neighborIndex] * 
-                           (fit.data.y[fit.data.testNeighbors[testObsIndex + fit.data.numTestObservations * neighborIndex] - 1] - 
-                            trainingFits[fit.data.testNeighbors[testObsIndex + fit.data.numTestObservations * neighborIndex] - 1]);
-          }
-          std::cout << "Predicted mean: " << testFits[testObsIndex] << std::endl;
-          testFits[testObsIndex] += adjustment;
-          std::cout << "Adjusted mean: " << testFits[testObsIndex] << std::endl;
-        }
-      }
-// bdahl end of addition
-#endif
       delete [] observationNodeMap;
       
       misc_stackFree(nodeParams);

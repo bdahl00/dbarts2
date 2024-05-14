@@ -385,7 +385,7 @@ extern "C" {
     DEF_FUNC("dbarts_setSpatialStructureFromLocations", setSpatialStructureFromLocations, 5),
     DEF_FUNC("dbarts_setSpatialStructureFromNeighbors", setSpatialStructureFromNeighbors, 4),
     DEF_FUNC("dbarts_setTestSpatialStructureFromLocations", setTestSpatialStructureFromLocations, 2),
-    DEF_FUNC("dbarts_setTestSpatialStructureFromNeighbors", setTestSpatialStructureFromNeighbors, 3),
+    DEF_FUNC("dbarts_setTestSpatialStructureFromNeighbors", setTestSpatialStructureFromNeighbors, 4),
     { NULL, NULL, 0 }
   };
 

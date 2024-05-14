@@ -2322,6 +2322,7 @@ namespace {
                 (fit.data.y[yIndexOfNeighbor] - results.trainingSamples[yIndexOfNeighbor]); 
             }
             testSamples[testObsIndex] += adjustment;
+            testSamples[testObsIndex] += sigma * sharedScratch.dataScale.range * fit.data.testNeighborVecchiaVars[testObsIndex] * ext_rng_simulateStandardNormal(fit.state->rng); // Returning a draw from the predictive distribution rather than the posterior
           }
         }
         // bdahl end of addition
