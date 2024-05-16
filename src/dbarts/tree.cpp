@@ -134,7 +134,7 @@ if (obsIndex < 20) std::cout << "i: " << i << ", obsIndex: " << obsIndex << ", D
         if (testFits != NULL) nodeParams[i] = nodeParam;
       }
     } else {
-#define originalway 0
+#define originalway 1 
 #if originalway
       Eigen::MatrixXd IMinusBD = calculateIMinusBD(fit);
 
@@ -142,6 +142,8 @@ if (obsIndex < 20) std::cout << "i: " << i << ", obsIndex: " << obsIndex << ", D
 
       auto Q = Eigen::MatrixXd::Identity(IMinusBD.cols(), IMinusBD.cols()); // needs to be updated with state.k somehow
       Eigen::MatrixXd DTLambdaD = IMinusBD.transpose() * IMinusBD;
+      //Eigen::MatrixXd DTLambdaD(IMinusBD.cols(), IMinusBD.cols());
+      //DTLambdaD.setZero().selfadjointView<Eigen::Lower>().rankUpdate(IMinusBD.transpose());
       Eigen::MatrixXd fullCondVar = (state.sigma * state.sigma * Q + DTLambdaD).inverse();
       Eigen::VectorXd fullCondMean = fullCondVar * IMinusBD.transpose() * IMinusBR;
 #else
@@ -542,7 +544,7 @@ namespace dbarts {
   Eigen::MatrixXd Tree::calculateIMinusBD(const BARTFit& fit) const {
     NodeVector bottomNodes(getBottomNodes());
     size_t numBottomNodes = bottomNodes.size();
-#if approach1
+
     if (numBottomNodes == 1) return fit.data.adjIMinusB * Eigen::VectorXd::Constant(numBottomNodes, 1);
     Eigen::SparseMatrix<double> D(fit.data.numObservations, numBottomNodes);
     std::vector<int> numObsInNode(numBottomNodes);
@@ -558,29 +560,6 @@ namespace dbarts {
       }
     }
     return (fit.data.adjIMinusB * D).pruned(); // Not clear if this is faster, but it probably is 
-#else
-    if (numBottomNodes == 1) return fit.data.adjIMinusB.colwise().sum();
-    Eigen::PermutationMatrix<fit.data.numObservations, fit.data.numObservations, std::size_t> P;
-    std::size_t* permIndices = new size_t[fit.data.numObservations];
-    std::size_t* beginIndices = new size_t[numBottomNodes];
-    std::size_t i = 0;
-    for (std::size_t nodeIndex = 0; nodeIndex < numBottomNodes; ++nodeIndex) {
-      beginIndices[nodeIndex] = i;
-      for (std::size_t nodeObsIndex = 0; nodeObsIndex < bottomNodes[colIndex]->numObservations; ++nodeObsIndex) {
-        permIndices[i] = bottomNodes[nodeIndex]->observationIndices[nodeObsIndex];
-        i++; // Again, kind of satisfying to be able to do this
-      }
-    }
-    P.indices() = permIndices;
-    delete [] permIndices;
-    Eigen::SparseMatrix<double> adjIMinusBPT = fit.data.adjIMinusBD * P.transpose();
-    Eigen::MatrixXd IMinusBD(fit->data.numObservations, numBottomNodes);
-    for (std::size_t nodeIndex = 0; nodeIndex < numBottomNodes; ++nodeIndex) {
-      IMinusBD.col(nodeIndex) = adjIMinusBPT.middleCols(beginIndices[nodeIndex], bottomNodes[colIndex]->numObservations).colwise().sum();
-    }
-    delete [] beginIndices;
-    return IMinusBD;
-#endif
   }
 
   // This is directly copied in src/dbarts/parameterPrior.cpp - in the future, best to move this to matrixFunctions.cpp

@@ -8,16 +8,31 @@
 #include "node.hpp"
 #include <Eigen/Dense>
 #include <iostream>
+#include <chrono>
 
 namespace dbarts {
   using std::size_t;
 
   double computeMarginalLogLikelihood(const BARTFit& fit, size_t chainNum, const Tree& tree, const double* R, double sigma) {
-#define firstway 0
+#define firstway 1
 #if firstway
+    auto t1 = std::chrono::high_resolution_clock::now();
     Eigen::MatrixXd IMinusBD = tree.calculateIMinusBD(fit);
+    auto t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> ms_double = t2 - t1;
+    std::cout << "Time to calculate IMinusBD: " <<  ms_double.count() << " milliseconds" << std::endl;
+    t1 = std::chrono::high_resolution_clock::now();
     Eigen::VectorXd IMinusBR = tree.calculateIMinusBR(fit, R);
+    t2 = std::chrono::high_resolution_clock::now();
+    ms_double = t2 - t1;
+    std::cout << "Time to calculate IMinusBR: " << ms_double.count() << " milliseconds" << std::endl;
+    t1 = std::chrono::high_resolution_clock::now();
     Eigen::MatrixXd DTLambdaD = IMinusBD.transpose() * IMinusBD;
+    t2 = std::chrono::high_resolution_clock::now();
+    ms_double = t2 - t1;
+    std::cout << "Time to calculate DTLambdaD: " << ms_double.count() << " milliseconds" << std::endl;
+    //Eigen::MatrixXd DTLambdaD(IMinusBD.cols(), IMinusBD.cols());
+    //DTLambdaD.setZero().selfadjointView<Eigen::Lower>().rankUpdate(IMinusBD.transpose());
     auto Q = Eigen::MatrixXd::Identity(IMinusBD.cols(), IMinusBD.cols()); // needs to be updated with state.k somehow
     Eigen::MatrixXd fullCondVar = (sigma * sigma * Q + DTLambdaD).inverse();
     Eigen::VectorXd DTLambdaR = IMinusBD.transpose() * IMinusBR;
