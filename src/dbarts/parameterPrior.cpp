@@ -118,8 +118,10 @@ namespace dbarts {
       for (std::size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
         diffVec(colIndex) = y[colIndex] - y_hat[colIndex];
       }
-      Eigen::VectorXd adjustedDiffVec = fit.data.adjIMinusB * diffVec;
-      sumOfSquaredResiduals = adjustedDiffVec.dot(adjustedDiffVec);
+      //Eigen::VectorXd adjustedDiffVec = fit.data.adjIMinusB * diffVec;
+      //diffVec.dot(fit.data.Lambda.selfadjointView<Eigen::Lower>() * diffVec);
+      //sumOfSquaredResiduals = adjustedDiffVec.dot(adjustedDiffVec);
+      sumOfSquaredResiduals = diffVec.dot(fit.data.Lambda.selfadjointView<Eigen::Lower>() * diffVec);
     }
     // bdahl end of addition
     

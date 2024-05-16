@@ -13,7 +13,7 @@ namespace dbarts {
   using std::size_t;
 
   double computeMarginalLogLikelihood(const BARTFit& fit, size_t chainNum, const Tree& tree, const double* R, double sigma) {
-#define firstway 1
+#define firstway 0
 #if firstway
     Eigen::MatrixXd IMinusBD = tree.calculateIMinusBD(fit);
     Eigen::VectorXd IMinusBR = tree.calculateIMinusBR(fit, R);
@@ -29,12 +29,12 @@ namespace dbarts {
     Eigen::SparseMatrix<double> D(fit.data.numObservations, numBottomNodes);
     std::vector<int> numObsInNode(numBottomNodes);
     for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
-      numObsInNode.at(colIndex) = static_cast<int>(bottomNodex[colIndex]->numObservations);
+      numObsInNode.at(colIndex) = static_cast<int>(bottomNodes[colIndex]->numObservations);
     }
     D.reserve(numObsInNode);
-    for (std::size_t colIndex; colIndex < numBottomNodex; ++colIndex) {
-      for (std::size_t nodeObsINdex = 0; nodeObsIndex < numObsInNode.at(colIndex); ++nodeObsIndex) {
-        D.insert(bottomNodex[colIndex]->observationIndices[nodeObsINdex], colIndex) = 1;
+    for (std::size_t colIndex; colIndex < numBottomNodes; ++colIndex) {
+      for (std::size_t nodeObsIndex = 0; nodeObsIndex < numObsInNode.at(colIndex); ++nodeObsIndex) {
+        D.insert(bottomNodes[colIndex]->observationIndices[nodeObsIndex], colIndex) = 1;
       }
     }
 
