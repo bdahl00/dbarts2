@@ -554,9 +554,11 @@ namespace dbarts {
     D.reserve(numObsInNode);
     for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
       //const Node& colNode(*bottomNodes[colIndex]);
+      std::vector<std::size_t> obsIndexVector(bottomNodes[colIndex]->observationIndices, bottomNodes[colIndex]->observationIndices + numObsInNode.at(colIndex));
+      std::sort(obsIndexVector.begin(), obsIndexVector.end());
       for (std::size_t nodeObsIndex = 0; nodeObsIndex < /*colNode.numObservations*/ bottomNodes[colIndex]->numObservations; ++nodeObsIndex) {
         //D.insert(colNode.observationIndices[nodeObsIndex], colIndex) = 1;
-        D.insert(bottomNodes[colIndex]->observationIndices[nodeObsIndex], colIndex) = 1;
+        D.insert(obsIndexVector.at(nodeObsIndex), colIndex) = 1;
       }
     }
     return (fit.data.adjIMinusB * D).pruned(); // Not clear if this is faster, but it probably is 
