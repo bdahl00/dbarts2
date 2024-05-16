@@ -19,6 +19,7 @@ namespace dbarts {
 
     std::size_t numNeighbors;
     Eigen::SparseMatrix<double> adjIMinusB;
+    Eigen::SparseMatrix<double> Lambda;
     const double* coords;
     double range;
     double smoothness;
@@ -44,6 +45,7 @@ namespace dbarts {
     {
       Eigen::SparseMatrix<double> adjIMinusB(1,1);
       this->adjIMinusB = adjIMinusB; 
+      this->Lambda = adjIMinusB;
     }
     
     Data(const double* y,
@@ -66,6 +68,7 @@ namespace dbarts {
     {
       Eigen::SparseMatrix<double> adjIMinusB(1,1);
       this->adjIMinusB = adjIMinusB; 
+      this->Lambda = adjIMinusB;
     }
 
 
@@ -89,6 +92,7 @@ namespace dbarts {
       numObservations(numObservations), numPredictors(numPredictors), numTestObservations(numTestObservations),
       sigmaEstimate(sigmaEstimate), variableTypes(variableTypes), maxNumCuts(maxNumCuts)
     {
+      this->Lambda = adjIMinusB.transpose() * adjIMinusB;
     }
 
   };

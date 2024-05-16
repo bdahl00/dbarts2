@@ -283,8 +283,12 @@ extern "C" {
       }
 //*/
 //std::cout << "Values inserted properly" << std::endl;
-      fit->data.adjIMinusB = adjIMinusB;
     }
+    fit->data.adjIMinusB = adjIMinusB;
+    //fit->data.Lambda.selfadjointView<Eigen::Lower>().rankUpdate(adjIMinusB.transpose());
+    Eigen::SparseMatrix<double> fullLambda(fit->data.numObservations, fit->data.numObservations);
+    fullLambda = (adjIMinusB.transpose() * adjIMinusB).pruned();
+    fit->data.Lambda = fullLambda.selfadjointView<Eigen::Lower>();
     delete [] distances;
     delete [] neighborIndices;
     return R_NilValue;
@@ -330,6 +334,10 @@ extern "C" {
       }
     }
     fit->data.adjIMinusB = adjIMinusB;
+    //fit->data.Lambda.selfadjointView<Eigen::Lower>().rankUpdate(adjIMinusB.transpose());
+    Eigen::SparseMatrix<double> fullLambda(fit->data.numObservations, fit->data.numObservations);
+    fullLambda = (adjIMinusB.transpose() * adjIMinusB).pruned();
+    fit->data.Lambda = fullLambda.selfadjointView<Eigen::Lower>();
     delete [] vecchiaIndices;
     return R_NilValue;
   }
