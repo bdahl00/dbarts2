@@ -101,7 +101,9 @@ extern "C" {
   
   SEXP run(SEXP fitExpr, SEXP numBurnInExpr, SEXP numSamplesExpr)
   {
+  //std::cout << "C++ reached" << std::endl;
     BARTFit* fit = static_cast<BARTFit*>(R_ExternalPtrAddr(fitExpr));
+  //std::cout << "Static cast to BARTFit* successfully performed" << std::endl;
     if (fit == NULL) Rf_error("dbarts_run called on NULL external pointer");
     
     int i_temp;
@@ -130,7 +132,8 @@ extern "C" {
       Rf_error("test sample array size cannot be represented by a signed integer on this architecture");
     
     GetRNGstate();
-    
+
+//std::cout << "runSampler function reached" << std::endl; 
     Results* bartResults = fit->runSampler(numBurnIn, numSamples);
     
     PutRNGstate();
@@ -285,10 +288,6 @@ extern "C" {
 //std::cout << "Values inserted properly" << std::endl;
     }
     fit->data.adjIMinusB = adjIMinusB;
-    //fit->data.Lambda.selfadjointView<Eigen::Lower>().rankUpdate(adjIMinusB.transpose());
-    Eigen::SparseMatrix<double> fullLambda(fit->data.numObservations, fit->data.numObservations);
-    fullLambda = (adjIMinusB.transpose() * adjIMinusB).pruned();
-    fit->data.Lambda = fullLambda.selfadjointView<Eigen::Lower>();
     delete [] distances;
     delete [] neighborIndices;
     return R_NilValue;
@@ -334,10 +333,6 @@ extern "C" {
       }
     }
     fit->data.adjIMinusB = adjIMinusB;
-    //fit->data.Lambda.selfadjointView<Eigen::Lower>().rankUpdate(adjIMinusB.transpose());
-    Eigen::SparseMatrix<double> fullLambda(fit->data.numObservations, fit->data.numObservations);
-    fullLambda = (adjIMinusB.transpose() * adjIMinusB).pruned();
-    fit->data.Lambda = fullLambda.selfadjointView<Eigen::Lower>();
     delete [] vecchiaIndices;
     return R_NilValue;
   }

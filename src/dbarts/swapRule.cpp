@@ -86,7 +86,7 @@ namespace dbarts {
     if (!leftHasRule && !rightHasRule) ext_throwError("error in SwapRule: neither child of parent has a rule\n");
     
     bool childrenHaveSameRule = leftHasRule && rightHasRule && leftChild.p.rule.equals(rightChild.p.rule);
-    
+
     if (!childrenHaveSameRule) {
       //find out which children have rules and pick one
       
@@ -142,6 +142,10 @@ namespace dbarts {
         childVariableIndex  =  child.p.rule.variableIndex;
         updateVariablesAvailable(fit, parent, parentVariableIndex);
         if (parentVariableIndex != childVariableIndex) updateVariablesAvailable(fit, parent, childVariableIndex);
+
+#if optimizedCache
+        parent.setAllIMinusBDCols(fit);
+#endif
         
         //get logpri and logL from current tree (X)
         double YLogPi = fit.model.treePrior->computeTreeLogProbability(fit, tree);
@@ -163,6 +167,9 @@ namespace dbarts {
           *stepTaken = true;
         } else {
           oldState.restore(fit, parent);
+#if optimizedCache
+          parent.setAllIMinusBDCols(fit);
+#endif
         }
       } else {
         alpha = -1.0; //not a legal swap	
@@ -198,7 +205,7 @@ namespace dbarts {
         if (fit.data.numNeighbors == 0) {
           XLogL = computeLogLikelihoodForBranch(fit, chainNum, parent, y, sigma); // bdahl: original
         } else {
-          XLogL = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
+	  XLogL = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
         }
         // bdahl end of addition
         
@@ -213,6 +220,9 @@ namespace dbarts {
         parentVariableIndex = parent.p.rule.variableIndex;
         updateVariablesAvailable(fit, parent, parentVariableIndex);
         if (parentVariableIndex != childVariableIndex) updateVariablesAvailable(fit, parent, childVariableIndex);
+#if optimizedCache
+        parent.setAllIMinusBDCols(fit);
+#endif
         
         double YLogPi = fit.model.treePrior->computeTreeLogProbability(fit, tree);
         // bdahl addition
@@ -220,7 +230,7 @@ namespace dbarts {
         if (fit.data.numNeighbors == 0) {
           YLogL = computeLogLikelihoodForBranch(fit, chainNum, parent, y, sigma); // bdahl: original
         } else {
-          YLogL = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
+	  YLogL = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
         }
         // bdahl end of addition
         
@@ -240,6 +250,9 @@ namespace dbarts {
           // std::memcpy(&parent.rightChild->rule, &oldRightChildRule, sizeof(Rule));
           
           *stepTaken = false;
+#if optimizedCache
+          parent.setAllIMinusBDCols(fit);
+#endif
         }
       } else {
         // checkrule failed, swap back
@@ -249,9 +262,11 @@ namespace dbarts {
         
         alpha = -1.0;
         *stepTaken = false;
+#if optimizedCache
+        parent.setAllIMinusBDCols(fit);
+#endif
       }
     }
-    
     return alpha;
   }
   

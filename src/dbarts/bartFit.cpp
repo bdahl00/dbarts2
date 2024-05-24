@@ -1337,6 +1337,7 @@ extern "C" {
   void samplerThreadFunction(std::size_t taskId, void* threadDataPtr) {
 // bdahl addition
 //  ext_printf("samplerThreadFunction reached\n");
+//std::cout << "samplerThreadFunction reached" << std::endl;
 // bdahl end of addition
     ThreadData* threadData(reinterpret_cast<ThreadData*>(threadDataPtr));
     
@@ -1391,7 +1392,7 @@ extern "C" {
       y = const_cast<double*>(sharedScratch.yRescaled);
     }
 
-// std::cout << "Main for loop reached" << std::endl;
+//std::cout << "Main for loop reached" << std::endl;
     for (size_t k = 0; k < totalNumIterations; ++k) {
       if (control.numThreads > 1 && control.numChains > 1)
         misc_htm_reserveThreadsForSubTask(fit.threadManager, taskId, k);
@@ -1429,9 +1430,39 @@ extern "C" {
         
         state.trees[treeNum].setNodeAverages(fit, chainNum, chainScratch.treeY);
         
-// std::cout << "metropolisJumpForTree reached" << std::endl;
+//std::cout << "metropolisJumpForTree reached" << std::endl;
+//std::cout << "Tree number: " << treeNum << std::endl;
         metropolisJumpForTree(fit, chainNum, state.trees[treeNum], chainScratch.treeY, state.sigma, &stepTaken, &ignored);
-// std::cout << "At sampleParametersAndSetFits" << std::endl;
+//std::cout << "At sampleParametersAndSetFits" << std::endl;
+#if optimizedCache
+//std::cout << "Tree equal to itself? " << state.trees[treeNum].equals(state.trees[treeNum]) << std::endl;
+NodeVector bottomNodes(state.trees[treeNum].getBottomNodes());
+std::vector<Eigen::VectorXd> originalBottomNodes(bottomNodes.size());
+for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
+  originalBottomNodes.at(nodeIndex) = bottomNodes[nodeIndex]->IMinusBDCol;
+}
+state.trees[treeNum].setAllIMinusBDCols(fit);
+std::vector<Eigen::VectorXd> newBottomNodes(bottomNodes.size());
+for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
+  newBottomNodes.at(nodeIndex) = bottomNodes[nodeIndex]->IMinusBDCol;
+}
+#if 0
+for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
+  for (std::size_t obsIndex = 0; obsIndex < fit.data.numObservations; ++obsIndex) {
+    if (abs(originalBottomNodes.at(nodeIndex)(obsIndex) - newBottomNodes.at(nodeIndex)(obsIndex)) > 1000 * DBL_EPSILON) {
+      std::cout << "Issue at terminal node " << nodeIndex << " observation " << obsIndex << std::endl;
+      std::cout << originalBottomNodes.at(nodeIndex)(obsIndex) << std::endl;
+      std::cout << newBottomNodes.at(nodeIndex)(obsIndex) << std::endl;
+      std::cout << "Machine precision: " << DBL_EPSILON << std::endl;
+      std::cout << originalBottomNodes.at(nodeIndex)(obsIndex) - newBottomNodes.at(nodeIndex)(obsIndex) << std::endl;
+      //std::cout << originalBottomNodes.at(nodeIndex) << std::endl;
+      //std::cout << newBottomNodes.at(nodeIndex) << std::endl;
+      ext_throwError("Bottom nodes don't match");
+    }
+  }
+}
+#endif
+#endif
         state.trees[treeNum].sampleParametersAndSetFits(fit, chainNum, currFits, isThinningIteration ? NULL : currTestFits,
                                                         fit.data.numNeighbors == 0 ? NULL : chainScratch.treeY); // bdahl: Last argument mine
         
@@ -1521,6 +1552,7 @@ namespace dbarts {
   
   void BARTFit::runSampler(size_t numBurnIn, Results* resultsPointer)
   {
+//std::cout << "runSampler reached" << std::endl;
     if (control.verbose) ext_printf("Running mcmc loop:\n");
     
 #ifdef HAVE_SYS_TIME_H

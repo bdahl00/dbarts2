@@ -48,6 +48,9 @@ namespace {
     size_t** observationIndicesPtrs; // duplicates where original was pointing
     size_t* numObservations;         // duplicates length of original
     size_t** observationIndices;     // duplicates content of original
+#if 0
+    Eigen::VectorXd** IMinusBDColRef; // Pointer to pointers, following observationIndices
+#endif
     
     void store(const BARTFit& fit, const Node& node);
     void destroy();
@@ -87,7 +90,12 @@ namespace dbarts {
     //u=ran1(&idum);
     size_t nodeIndex = ext_rng_simulateUnsignedIntegerUniformInRange(state.rng, 0, numNotBottomNodes);
     Node& nodeToChange(*notBottomNodes[nodeIndex]);
-    
+/*
+NodeVector bottomNodes(nodeToChange.getBottomVector());
+for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
+  std::cout << "Number of observations in terminal node " << nodeIndex << ": " << bottomNodes[nodeIndex]->numObservations << std::endl; 
+}   
+*/
     //given the node, choose a new variable for the new rule
     // split probabilities are calculated in computeTreeLogProbability below
     int32_t newVariableIndex = fit.model.treePrior->drawSplitVariable(fit, state.rng, nodeToChange);
@@ -148,6 +156,10 @@ namespace dbarts {
         // fix VarAvail
         updateVariablesAvailable(fit, nodeToChange, newVariableIndex);
         if (newVariableIndex != oldState.rule.variableIndex) updateVariablesAvailable(fit, nodeToChange, oldState.rule.variableIndex);
+
+#if optimizedCache
+        nodeToChange.setAllIMinusBDCols(fit);
+#endif
         
         //get logpri and logL from candidate tree (Y)
         YLogPi = fit.model.treePrior->computeTreeLogProbability(fit, tree);
@@ -167,10 +179,21 @@ namespace dbarts {
           oldState.destroy();
           
           *stepTaken = true;
+//std::cout << "Accepted, version 1" << std::endl;
         } else {
           oldState.restore(fit, nodeToChange);
           
           *stepTaken = false;
+#if optimizedCache
+          nodeToChange.setAllIMinusBDCols(fit);
+/*
+          NodeVector bottomNodes(nodeToChange.getBottomVector());
+          for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
+            std::cout << "Number of observations in terminal node " << nodeIndex << ": " << bottomNodes[nodeIndex]->numObservations << std::endl; 
+          }
+*/
+#endif
+//std::cout << "Rejected" << std::endl;
         }
         
         misc_stackFree(sel);
@@ -215,6 +238,10 @@ namespace dbarts {
         
         updateVariablesAvailable(fit, nodeToChange, newVariableIndex);
         if (newVariableIndex != oldState.rule.variableIndex) updateVariablesAvailable(fit, nodeToChange, oldState.rule.variableIndex);
+
+#if optimizedCache
+        nodeToChange.setAllIMinusBDCols(fit);
+#endif
         
         //get logpri and logL from candidate tree (Y)
         YLogPi = fit.model.treePrior->computeTreeLogProbability(fit, tree);
@@ -232,10 +259,21 @@ namespace dbarts {
         if (ext_rng_simulateBernoulli(state.rng, alpha) == 1) {	
           oldState.destroy();
           *stepTaken = true;
+//std::cout << "Accepted, version 2" << std::endl;
         } else {
           oldState.restore(fit, nodeToChange);
           
           *stepTaken = false;
+#if optimizedCache
+          nodeToChange.setAllIMinusBDCols(fit);
+/*
+          NodeVector bottomNodes(nodeToChange.getBottomVector());
+          for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
+            std::cout << "Number of observations in terminal node " << nodeIndex << ": " << bottomNodes[nodeIndex]->numObservations << std::endl; 
+          }
+*/
+#endif
+//std::cout << "Rejected" << std::endl;
         }
       } else {
         // if no rules for that var abort step
@@ -424,6 +462,9 @@ namespace {
     if (node.isBottom()) {
       state.averages[bottomNodeIndex] = node.getAverage();
       state.numEffectiveObservations[bottomNodeIndex++] = node.getNumEffectiveObservations();
+#if 0
+      state.IMinusBDColRef[bottomNodeIndex] = &node.IMinusBDCol;
+#endif
       return;
     }
     
@@ -443,6 +484,9 @@ namespace {
     if (node.isBottom()) {
       node.setAverage(state.averages[bottomNodeIndex]);
       node.setNumEffectiveObservations(state.numEffectiveObservations[bottomNodeIndex++]);
+#if 0
+      node.IMinusBDCol = Eigen::Map<const Eigen::VectorXd>(state.IMinusBDColRef[bottomNodeIndex], fit.data.numObservations);
+#endif
       return;
     }
     
@@ -464,6 +508,9 @@ namespace {
     observationIndicesPtrs = new size_t*[numNodesInSubtree];
     numObservations = new size_t[numNodesInSubtree];
     observationIndices = new size_t*[numNodesInSubtree];
+#if 0
+    IMinusBDColRef = new Eigen::VectorXd*[numNodesInSubtree];
+#endif
     
     size_t nodeIndex = 0, bottomNodeIndex = 0;
     storeTree(*this, fit, node, nodeIndex, bottomNodeIndex);
@@ -479,6 +526,10 @@ namespace {
     delete [] numObservations;
     for (size_t i = 0; i < numNodesInSubtree; ++i) delete [] observationIndices[i];
     delete [] observationIndices;
+#if 0
+    for (size_t i = 0; i < numNodesInSubtree; ++i) delete [] IMinusBDColRef[i];
+    delete [] IMinusBDColRef;
+#endif
   }
   
   void ::State::restore(const BARTFit& fit, Node& node) {
@@ -496,5 +547,9 @@ namespace {
     delete [] numObservations;
     for (size_t i = 0; i < numNodesInSubtree; ++i) delete [] observationIndices[i];
     delete [] observationIndices;
+#if 0
+    for (size_t i = 0; i < numNodesInSubtree; ++i) delete [] IMinusBDColRef[i];
+    delete [] IMinusBDColRef;
+#endif
   }
 }

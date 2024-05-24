@@ -118,17 +118,15 @@ namespace dbarts {
       for (std::size_t colIndex = 0; colIndex < numObservations; ++colIndex) {
         diffVec(colIndex) = y[colIndex] - y_hat[colIndex];
       }
-      //Eigen::VectorXd adjustedDiffVec = fit.data.adjIMinusB * diffVec;
-      //diffVec.dot(fit.data.Lambda.selfadjointView<Eigen::Lower>() * diffVec);
-      //sumOfSquaredResiduals = adjustedDiffVec.dot(adjustedDiffVec);
-      sumOfSquaredResiduals = diffVec.dot(fit.data.Lambda.selfadjointView<Eigen::Lower>() * diffVec);
+      Eigen::VectorXd adjustedDiffVec = fit.data.adjIMinusB * diffVec;
+      sumOfSquaredResiduals = adjustedDiffVec.dot(adjustedDiffVec);
     }
     // bdahl end of addition
     
     double posteriorDegreesOfFreedom = degreesOfFreedom + static_cast<double>(data.numObservations);
     
     double posteriorScale = degreesOfFreedom * scale + sumOfSquaredResiduals;
-std::cout << "Sum of squared residuals: " << sumOfSquaredResiduals << std::endl; // bdahl addition 
+//std::cout << "Sum of squared residuals: " << sumOfSquaredResiduals << std::endl; // bdahl addition 
     return posteriorScale / ext_rng_simulateChiSquared(fit.state[chainNum].rng, posteriorDegreesOfFreedom);
   }
   

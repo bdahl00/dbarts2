@@ -134,8 +134,30 @@ if (obsIndex < 20) std::cout << "i: " << i << ", obsIndex: " << obsIndex << ", D
         if (testFits != NULL) nodeParams[i] = nodeParam;
       }
     } else {
-#define originalway 1 
-#if originalway
+#if optimizedCache
+      NodeVector bottomNodes(getBottomNodes());
+      std::size_t numBottomNodes = bottomNodes.size();
+      Eigen::VectorXd IMinusBR = calculateIMinusBR(fit, R);
+      Eigen::VectorXd DTLambdaR(numBottomNodes);
+      Eigen::MatrixXd DTLambdaD(numBottomNodes, numBottomNodes);
+      for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
+        DTLambdaR(colIndex) = (bottomNodes[colIndex]->IMinusBDCol).dot(IMinusBR);
+        DTLambdaD(colIndex, colIndex) = (bottomNodes[colIndex]->IMinusBDCol).dot(bottomNodes[colIndex]->IMinusBDCol);
+        for (std::size_t rowIndex = 0; rowIndex < colIndex; ++rowIndex) {
+          double innerProd = (bottomNodes[colIndex]->IMinusBDCol).dot(bottomNodes[rowIndex]->IMinusBDCol);
+          DTLambdaD(rowIndex, colIndex) = innerProd;
+          DTLambdaD(colIndex, rowIndex) = innerProd;
+        }
+      }
+      auto Q = Eigen::MatrixXd::Identity(numBottomNodes, numBottomNodes);
+      Eigen::MatrixXd fullCondVar = (sigma * sigma * Q + DTLambdaD).inverse();
+      Eigen::VectorXd fullCondMean = fullCondVar * DTLambdaR;
+      //Eigen::MatrixXd IMinusBD = calculateIMinusBD(fit);
+      //std::cout << "DTLambdaD, fast method:\n" << DTLambdaD << std::endl;
+      //std::cout << "DTLambdaD, known correct method\n" << IMinusBD.transpose() * IMinusBD << std::endl;
+      //std::cout << "fullCondMean, fast method:\n" << fullCondMean << std::endl;
+      //std::cout << "fullCondMean, known correct method\n" << fullCondVar * IMinusBD.transpose() * IMinusBR << std::endl; 
+#else
       Eigen::MatrixXd IMinusBD = calculateIMinusBD(fit);
 
       Eigen::VectorXd IMinusBR = calculateIMinusBR(fit, R); 
@@ -146,49 +168,15 @@ if (obsIndex < 20) std::cout << "i: " << i << ", obsIndex: " << obsIndex << ", D
       //DTLambdaD.setZero().selfadjointView<Eigen::Lower>().rankUpdate(IMinusBD.transpose());
       Eigen::MatrixXd fullCondVar = (state.sigma * state.sigma * Q + DTLambdaD).inverse();
       Eigen::VectorXd fullCondMean = fullCondVar * IMinusBD.transpose() * IMinusBR;
-#else
-      NodeVector bottomNodes(getBottomNodes());
-      size_t numBottomNodes = bottomNodes.size();
-
-      // Calculate D
-      Eigen::SparseMatrix<double> D(fit.data.numObservations, numBottomNodes);
-      std::vector<int> numObsInNode(numBottomNodes);
-      for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
-        numObsInNode.at(colIndex) = static_cast<int>(bottomNodes[colIndex]->numObservations);
-      }
-      D.reserve(numObsInNode);
-      for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
-        for (std::size_t nodeObsIndex = 0; nodeObsIndex < bottomNodes[colIndex]->numObservations; ++nodeObsIndex) {
-          D.insert(bottomNodes[colIndex]->observationIndices[nodeObsIndex], colIndex) = 1;
-        }
-      }
-
-      Eigen::MatrixXd DTLambdaD(numBottomNodes, numBottomNodes);
-      DTLambdaD = D.transpose() * fit.data.Lambda.selfadjointView<Eigen::Lower>() * D;
-      auto Q = Eigen::MatrixXd::Identity(numBottomNodes, numBottomNodes);
-      Eigen::MatrixXd fullCondVar = (state.sigma * state.sigma * Q + DTLambdaD).inverse();
-      Eigen::Map<const Eigen::VectorXd> Rvec(R, fit.data.numObservations);
-      Eigen::VectorXd fullCondMean = fullCondVar * D.transpose() * fit.data.Lambda.selfadjointView<Eigen::Lower>() * Rvec; 
 #endif
       Eigen::LLT<Eigen::MatrixXd> choleskyOfVar(fullCondVar);
       Eigen::MatrixXd L(choleskyOfVar.matrixL());
-
-//std::cout << "fullCondVar: " << std::endl << fullCondVar << std::endl;
-// std::cout << "fullCondVar calculated\n";
-// This can be optimized, but how to do it is a little opaque. In any case, the matrices are small
-//      Eigen::LLT<Eigen::MatrixXd> choleskyOfPrecision(fullCondPrecis);
-//      Eigen::VectorXd fullCondMean = choleskyOfPrecision.solve(Eigen::MatrixXd::Identity(DTLambdaD.cols(), DTLambdaD.cols())) *
-//
-//                                       (IMinusBR.transpose() * IMinusBD).transpose();
-//      Eigen::VectorXd fullCondMean = fullCondVar * (IMinusBR.transpose() * IMinusBD).transpose();
-      //setFullCondVar(fit, state.sigma, chainNum); // Should eventually be expended to include setting IMinusBD
-     // Eigen::VectorXd fullCondMean = commonFullCondVar * (IMinusBD.transpose() * IMinusBR); // Enforcing efficiency
-
       Eigen::VectorXd Z(numBottomNodes); // Will be our vector of standard normals;
       for (size_t nodeIndex = 0; nodeIndex < numBottomNodes; ++nodeIndex) {
         Z(nodeIndex) = ext_rng_simulateStandardNormal(state.rng);
       }
       Eigen::VectorXd contributions = fullCondMean + state.sigma * L * Z;
+//std::cout << "Contributions:\n" << contributions << std::endl;
       for (size_t nodeIndex = 0; nodeIndex < numBottomNodes; ++nodeIndex) {
         const Node& bottomNode(*bottomNodes[nodeIndex]);
         bottomNode.setPredictions(trainingFits, contributions(nodeIndex));
@@ -538,14 +526,13 @@ namespace dbarts {
   }
 }
 
-#define approach1 1 
 // bdahl addition
 namespace dbarts {
   Eigen::MatrixXd Tree::calculateIMinusBD(const BARTFit& fit) const {
     NodeVector bottomNodes(getBottomNodes());
     size_t numBottomNodes = bottomNodes.size();
 
-    if (numBottomNodes == 1) return fit.data.adjIMinusB * Eigen::VectorXd::Constant(numBottomNodes, 1);
+    if (numBottomNodes == 1) return fit.data.adjIMinusB * Eigen::VectorXd::Constant(fit.data.numObservations, 1);
     Eigen::SparseMatrix<double> D(fit.data.numObservations, numBottomNodes);
     std::vector<int> numObsInNode(numBottomNodes);
     for (std::size_t colIndex = 0; colIndex < numBottomNodes; ++colIndex) {
@@ -569,20 +556,14 @@ namespace dbarts {
     Eigen::Map<const Eigen::VectorXd> Rvec(R, fit.data.numObservations);
     return fit.data.adjIMinusB * Rvec;
   }
-#if 0
-  void Tree::setFullCondVar(const BARTFit& fit, double sigma, std::size_t chainNum) {
-    if (fit.data.numNeighbors == 0) return;
-    // Is only called from inside the spatial part of sampleParametersAndSetFits and computeMarginalLogLikelihood
-    //if (chainNum != 0) return;
-    IMinusBD = calculateIMinusBD(fit);
-    auto Q = Eigen::MatrixXd::Identity(IMinusBD.cols(), IMinusBD.cols()); // needs to be updated with state.k somehow
-    Eigen::MatrixXd DTLambdaD = IMinusBD.transpose() * IMinusBD;
-    commonFullCondVar = (sigma * sigma * Q + DTLambdaD).inverse();
-    Eigen::LLT<Eigen::MatrixXd> choleskyOfVar(commonFullCondVar);
-    Eigen::MatrixXd choleskyOfVarAsMatrix(choleskyOfVar.matrixL());
-    L = choleskyOfVarAsMatrix;    
-    fullCondVarHalfLogDeterminant = log(commonFullCondVar.determinant()) / 2;
-//std::cout << fullCondVar << std::endl;
+
+#if optimizedCache
+  void Tree::setAllIMinusBDCols(const BARTFit& fit) {
+    top.setAllIMinusBDCols(fit);
+  }
+
+  bool Tree::equals(const Tree& other) const {
+    return top.equals(other.top);
   }
 #endif
 }

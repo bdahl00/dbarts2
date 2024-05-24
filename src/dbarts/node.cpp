@@ -155,6 +155,9 @@ namespace dbarts {
     } else {
       m.average = other.m.average;
       m.numEffectiveObservations = other.m.numEffectiveObservations;
+#if optimizedCache
+      IMinusBDCol = other.IMinusBDCol;
+#endif
     }
     
     std::memcpy(variablesAvailableForSplit, other.variablesAvailableForSplit, sizeof(bool) * numPredictors);
@@ -477,6 +480,9 @@ namespace dbarts {
         if (fit.data.weights == NULL) {
           m.average = misc_htm_computeMean(fit.threadManager, fit.chainScratch[chainNum].taskId, y, numObservations);
           m.numEffectiveObservations = static_cast<double>(numObservations);
+#if optimizedCache
+          IMinusBDCol = fit.data.adjIMinusB * Eigen::VectorXd::Constant(fit.data.numObservations, 1);
+#endif
         } else {
           m.average = misc_htm_computeWeightedMean(fit.threadManager, fit.chainScratch[chainNum].taskId, y, numObservations, fit.data.weights, &m.numEffectiveObservations);
         }
@@ -484,6 +490,16 @@ namespace dbarts {
         if (fit.data.weights == NULL) {
           m.average = misc_htm_computeIndexedMean(fit.threadManager, fit.chainScratch[chainNum].taskId, y, observationIndices, numObservations);
           m.numEffectiveObservations = static_cast<double>(numObservations);
+#if optimizedCache
+          Eigen::SparseVector<double> DCol(fit.data.numObservations);
+          DCol.reserve(numObservations);
+          std::vector<std::size_t> obsIndexVector(observationIndices, observationIndices + numObservations);
+          std::sort(obsIndexVector.begin(), obsIndexVector.end());
+          for (std::size_t obsIndex = 0; obsIndex < numObservations; ++obsIndex) {
+            DCol.insert(obsIndexVector.at(obsIndex)) = 1;
+          }
+          IMinusBDCol = fit.data.adjIMinusB * DCol;
+#endif
         } else {
           m.average = misc_htm_computeIndexedWeightedMean(fit.threadManager, fit.chainScratch[chainNum].taskId, y, observationIndices, numObservations, fit.data.weights, &m.numEffectiveObservations);
         }
@@ -673,7 +689,7 @@ namespace dbarts {
     if (exhaustedLeftSplits)     leftChild->variablesAvailableForSplit[p.rule.variableIndex] = false;
     if (exhaustedRightSplits) p.rightChild->variablesAvailableForSplit[p.rule.variableIndex] = false;
     
-    addObservationsToChildren(fit, chainNum, y);
+    addObservationsToChildren(fit, chainNum, y); // This recurses and takes care of IMinusBDCol for both children
   }
   
   void Node::split(const BARTFit& fit, const Rule& newRule, bool exhaustedLeftSplits, bool exhaustedRightSplits) {
@@ -696,6 +712,9 @@ namespace dbarts {
     
     double average = leftChild->m.average * (leftChild->m.numEffectiveObservations / numEffectiveObservations) +
                      p.rightChild->m.average * (p.rightChild->m.numEffectiveObservations / numEffectiveObservations);
+#if optimizedCache
+    IMinusBDCol = leftChild->IMinusBDCol + p.rightChild->IMinusBDCol;
+#endif
     
     leftChild = NULL;
     m.average = average;
@@ -767,6 +786,39 @@ namespace dbarts {
     
     return length;
   }
+
+#if optimizedCache
+  void Node::setAllIMinusBDCols(const BARTFit& fit) {
+    NodeVector bottomNodes(getBottomVector());
+    for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
+      Eigen::SparseVector<double> DCol(fit.data.numObservations);
+      std::vector<std::size_t> obsIndices(bottomNodes[nodeIndex]->observationIndices, bottomNodes[nodeIndex]->observationIndices + bottomNodes[nodeIndex]->numObservations);
+      std::sort(obsIndices.begin(), obsIndices.end());
+      for (std::size_t obsIndex = 0; obsIndex < obsIndices.size(); ++obsIndex) {
+        DCol.insert(obsIndices.at(obsIndex)) = 1;
+      }
+      bottomNodes[nodeIndex]->IMinusBDCol = fit.data.adjIMinusB * DCol;
+    }
+  }
+
+  bool Node::equals(const Node& other) const {
+    NodeVector bottomNodes(getBottomVector());
+    NodeVector otherBottomNodes(other.getBottomVector());
+    if (bottomNodes.size() != otherBottomNodes.size()) return false;
+    std::size_t numBottomNodes = bottomNodes.size();
+    for (std::size_t nodeIndex = 0; nodeIndex < numBottomNodes; ++nodeIndex) {
+      if (bottomNodes[nodeIndex]->numObservations != otherBottomNodes[nodeIndex]->numObservations) return false;
+      std::size_t numObservations = bottomNodes[nodeIndex]->numObservations;
+      for (std::size_t obsIndex = 0; obsIndex < numObservations; ++obsIndex) {
+        if ((bottomNodes[nodeIndex]->observationIndices)[obsIndex] != (otherBottomNodes[nodeIndex]->observationIndices)[obsIndex]) return false;
+      }
+      for (std::size_t obsIndex = 0; obsIndex < bottomNodes[nodeIndex]->IMinusBDCol.cols(); ++obsIndex) {
+        if ((bottomNodes[nodeIndex]->IMinusBDCol)(obsIndex) != (otherBottomNodes[nodeIndex]->IMinusBDCol)(obsIndex)) return false;
+      }
+    }
+    return true;
+  }
+#endif
   
   size_t SavedNode::getSerializedLength() const {
     size_t length;

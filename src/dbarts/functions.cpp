@@ -1,5 +1,6 @@
 #include "config.hpp"
 #include "functions.hpp"
+#include "matrixFunctions.hpp"
 
 #include <vector>
 
@@ -13,6 +14,7 @@
 #include "birthDeathRule.hpp"
 #include "changeRule.hpp"
 #include "node.hpp"
+#include "tree.hpp"
 #include "swapRule.hpp"
 #include <iostream>
 
@@ -100,6 +102,12 @@ namespace dbarts {
   double metropolisJumpForTree(const BARTFit& fit, size_t chainNum, Tree& tree, const double* y, double sigma,
                                bool* stepTaken, StepType* stepType)
   { 
+#if optimizedCache
+    if (!tree.matrixSuiteSet && fit.data.numNeighbors != 0) {
+      tree.setAllIMinusBDCols(fit);
+      tree.matrixSuiteSet = true;
+    }
+#endif
     double alpha;
     bool birthedTree;
        
@@ -107,6 +115,7 @@ namespace dbarts {
     // ext_printf("type: %s; ", u < fit.model.birthOrDeathProbability ? "birth/death" : (u < fit.model.birthOrDeathProbability + fit.model.swapProbability ? "swap" : "change"));
     
     if (u < fit.model.birthOrDeathProbability) {
+//std::cout << "Birth or death step" << std::endl;
       alpha = birthOrDeathNode(fit, chainNum, tree, y, sigma, stepTaken, &birthedTree);
       if (birthedTree == true) {
         *stepType = BIRTH;
@@ -114,9 +123,11 @@ namespace dbarts {
         *stepType = DEATH;
       }
     } else if (u < fit.model.birthOrDeathProbability + fit.model.swapProbability) { 
+//std::cout << ">>>>>>> Swap step <<<<<<<" << std::endl;
       alpha = swapRule(fit, chainNum, tree, y, sigma, stepTaken);
       *stepType = SWAP;
     } else {
+//std::cout << ">>>>>>> Change step <<<<<<<" << std::endl;
       alpha = changeRule(fit, chainNum, tree, y, sigma, stepTaken);
       *stepType = CHANGE;
     }

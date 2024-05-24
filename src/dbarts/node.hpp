@@ -4,8 +4,12 @@
 #include <dbarts/cstdint.hpp>
 #include <cstddef>
 #include <vector>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
 
 #include <dbarts/types.hpp>
+
+#define optimizedCache 1
 
 struct ext_rng;
 
@@ -70,6 +74,9 @@ namespace dbarts {
     
     std::size_t* observationIndices;
     std::size_t numObservations;
+#if optimizedCache
+    mutable Eigen::VectorXd IMinusBDCol;
+#endif
     
     Node(std::size_t* observationIndices, std::size_t numObservations, std::size_t numPredictors); // node is assumed at top
     Node(const Node& parent, std::size_t numPredictors); // node attaches to parent; parent should add observations
@@ -142,6 +149,10 @@ namespace dbarts {
     std::size_t getSerializedLength(const BARTFit& fit) const;
     std::size_t serialize(const BARTFit& fit, void* state) const;
     std::size_t deserialize(const BARTFit& fit, const void* state);
+#if optimizedCache
+    void setAllIMinusBDCols(const BARTFit& fit);
+    bool equals(const Node& other) const;
+#endif
   };
   
   struct SavedNode;
