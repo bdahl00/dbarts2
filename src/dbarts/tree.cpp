@@ -112,7 +112,7 @@ if (obsIndex < 20) std::cout << "i: " << i << ", obsIndex: " << obsIndex << ", D
   void Tree::sampleParametersAndSetFits(const BARTFit& fit, size_t chainNum, double* trainingFits, double* testFits,
                                         const double* R) // bdahl: Last argument mine, should be NULL if iid assumed
   {
-// std::cout << "sampleParametersAndSetFits entered" << std::endl;
+//std::cout << "sampleParametersAndSetFits entered" << std::endl;
     State& state(fit.state[chainNum]);
     double sigma = state.sigma;
     
@@ -149,6 +149,7 @@ if (obsIndex < 20) std::cout << "i: " << i << ", obsIndex: " << obsIndex << ", D
           DTLambdaD(colIndex, rowIndex) = innerProd;
         }
       }
+//std::cout << "DTLambdaD created" << std::endl;
       auto Q = Eigen::MatrixXd::Identity(numBottomNodes, numBottomNodes);
       Eigen::MatrixXd fullCondVar = (sigma * sigma * Q + DTLambdaD).inverse();
       Eigen::VectorXd fullCondMean = fullCondVar * DTLambdaR;
@@ -168,6 +169,7 @@ if (obsIndex < 20) std::cout << "i: " << i << ", obsIndex: " << obsIndex << ", D
       //DTLambdaD.setZero().selfadjointView<Eigen::Lower>().rankUpdate(IMinusBD.transpose());
       Eigen::MatrixXd fullCondVar = (state.sigma * state.sigma * Q + DTLambdaD).inverse();
       Eigen::VectorXd fullCondMean = fullCondVar * IMinusBD.transpose() * IMinusBR;
+//std::cout << "fullCondVar and fullCondMean created" << std::endl;
 #endif
       Eigen::LLT<Eigen::MatrixXd> choleskyOfVar(fullCondVar);
       Eigen::MatrixXd L(choleskyOfVar.matrixL());
@@ -192,6 +194,7 @@ if (obsIndex < 20) std::cout << "i: " << i << ", obsIndex: " << obsIndex << ", D
       
       misc_stackFree(nodeParams);
     }
+//std::cout << "End of sampleParametersAndSetFits" << std::endl;
   }
   
   

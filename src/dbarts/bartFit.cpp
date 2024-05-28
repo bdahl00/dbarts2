@@ -1418,7 +1418,6 @@ extern "C" {
       for (size_t treeNum = 0; treeNum < control.numTrees; ++treeNum) {
 // bdahl addition
 //std::cout << state.sigma << std::endl;
-//        if (fit.data.numNeighbors != 0) state.trees[treeNum].setFullCondVar(fit, state.sigma);
 // bdahl end of addition
         double* oldTreeFits = state.treeFits + treeNum * state.treeFitsStride;
         
@@ -1480,7 +1479,9 @@ for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
         }
         
         std::memcpy(oldTreeFits, const_cast<const double*>(currFits), data.numObservations * sizeof(double));
+//std::cout << "Tree fits copied" << std::endl;
       }
+//std::cout << "End of tree for loop" << std::endl; 
       
       if (control.keepTrees & !isBurningIn && !isThinningIteration) {
         size_t treeSampleNum = (fit.currentSampleNum + resultSampleNum) % fit.currentNumSamples;
@@ -1495,17 +1496,20 @@ for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
         if (data.offset != NULL)
           misc_subtractVectorsInPlace(data.offset, data.numObservations, y);
       }
+//std::cout << "Binary tree check passed" << std::endl;
       
       if (!model.sigmaSqPrior->isFixed)
         state.sigma = std::sqrt(model.sigmaSqPrior->drawFromPosterior(fit, chainNum, y, chainScratch.totalFits));
       if (!model.kPrior->isFixed)
         state.k = model.kPrior->drawFromPosterior(fit, chainNum);
+//std::cout << "Draw from posterior passed" << std::endl;
             
       if (!isThinningIteration) {
         // if not out of burn-in, store result in first result; start
         // overwriting after that
         for (size_t j = 0; j < fit.data.numPredictors; ++j) variableCounts[j] = 0;
         countVariableUses(fit, state, variableCounts);
+//std::cout << "countVariableUses passed" << std::endl;
 #if 0 // This is the right thing to be doing, but in the wrong place. Kept for reference.
         // bdahl addition
         if (fit.data.numNeighbors != 0) {
@@ -1527,6 +1531,7 @@ std::cout << "Adjusted mean: " << chainScratch.totalTestFits[testObsIndex] << st
         storeSamples(fit, chainNum, results, chainScratch.totalFits, chainScratch.totalTestFits, state.sigma,
                      state.k, variableCounts, resultSampleNum);
           
+//std::cout << "storeSamples passed" << std::endl;
         if (control.callback != NULL) {
           size_t chainStride = chainNum * numSamples;
           control.callback(control.callbackData, fit, isBurningIn,
@@ -1535,6 +1540,7 @@ std::cout << "Adjusted mean: " << chainScratch.totalTestFits[testObsIndex] << st
                            results.sigmaSamples[resultSampleNum + chainStride],
                            !model.kPrior->isFixed ? results.kSamples + resultSampleNum + chainStride : NULL);
         }
+//std::cout << "callback passed" << std::endl;
       }
     }
     
@@ -1547,6 +1553,7 @@ std::cout << "Adjusted mean: " << chainScratch.totalTestFits[testObsIndex] << st
     }
     if (data.numTestObservations > 0) delete [] currTestFits;
     misc_stackFree(variableCounts);
+//std::cout << "End of function" << std::endl;
   }
 }
 
@@ -2330,6 +2337,7 @@ namespace {
       
       results.sigmaSamples[simNum + chainStride] = 1.0;
     } else {
+//std::cout << "Response is not binary" << std::endl;
       if (control.keepTrainingFits) {
         double* trainingSamples = results.trainingSamples + (simNum + chainStride) * data.numObservations;
         // set training to dataScale.range * (totalFits + 0.5) + dataScale.min + offset
@@ -2346,12 +2354,15 @@ namespace {
         if (data.testOffset != NULL) misc_addVectorsInPlace(data.testOffset, data.numTestObservations, testSamples);
 // bdahl note - I suppose the update has to happen here?
 // bdahl addition
+//std::cout << "Addition reached" << std::endl;
         if (fit.data.numNeighbors != 0) {
           for (std::size_t testObsIndex = 0; testObsIndex < fit.data.numTestObservations; ++testObsIndex) {
             double adjustment = 0.0;
             for (std::size_t neighborIndex = 0; neighborIndex < fit.data.numNeighbors; ++neighborIndex) {
               std::size_t inducedIndex = testObsIndex + fit.data.numTestObservations * neighborIndex;
+//std::cout << "inducedIndex: " << inducedIndex << std::endl;
               std::size_t yIndexOfNeighbor = fit.data.testNeighbors[inducedIndex] - 1; // 1 vs 0 based indexing
+//std::cout << "yIndexOfNeighbor: " << yIndexOfNeighbor << std::endl;
               adjustment += fit.data.testNeighborDeviationWeights[inducedIndex] *
                 (fit.data.y[yIndexOfNeighbor] - results.trainingSamples[yIndexOfNeighbor]); 
             }

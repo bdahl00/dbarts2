@@ -100,7 +100,7 @@ for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
       double parentPriorGrowthProbability = fit.model.treePrior->computeGrowthProbability(fit, nodeToChange);
       double oldPriorProbability = 1.0 - parentPriorGrowthProbability;
       // bdahl addition
- //std::cout << "Likelihood calculation entered" << std::endl;
+//std::cout << "Likelihood calculation entered" << std::endl;
       double oldLogLikelihood;
       if (fit.data.numNeighbors == 0) {
         oldLogLikelihood = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original
@@ -108,13 +108,13 @@ for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
         oldLogLikelihood = computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
 //computeMarginalLogLikelihood(fit, chainNum, tree, y, sigma);
       }
-// std::cout << "Likelihood calculation passed" << std::endl;
+//std::cout << "Likelihood calculation passed" << std::endl;
       // bdahl end of addition
       
       // now perform birth;
-// std::cout << "Birth performed" << std::endl;
+//std::cout << "Birth performed" << std::endl;
       storeState(oldState, nodeToChange);
-// std::cout << "State stored" << std::endl; 
+//std::cout << "State stored" << std::endl; 
       bool exhaustedLeftSplits, exhaustedRightSplits;
       // Because the proposal split is drawn from the prior, its contribution to transition ratio
       // cancels out with the prior itself.
@@ -151,7 +151,7 @@ for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
                                (transitionProbabilityOfBirthStep * transitionProbabilityOfSelectingNodeForBirth);
       
       double likelihoodRatio = std::exp(newLogLikelihood - oldLogLikelihood);
-//std::cout << "likelihoodRatio: " << std::endl;
+//std::cout << "likelihoodRatio: " << likelihoodRatio << std::endl;
       
       ratio = priorRatio * likelihoodRatio * transitionRatio;
 //std::cout << "priorRatio: " << priorRatio << std::endl;

@@ -387,11 +387,14 @@ extern "C" {
       Eigen::VectorXd weightVec = neighborPrecis * neighborCorVec;
       for (std::size_t vecchiaIndex = 0; vecchiaIndex < numNeighbors; ++vecchiaIndex) {
         std::size_t inducedIndex = testObsIndex + numTestObs * vecchiaIndex;
-        testVecchiaIndices[inducedIndex] = neighborIndices[vecchiaIndex];
+        testVecchiaIndices[inducedIndex] = neighborIndices[vecchiaIndex] + 1; // Aligning with R's indexing
         testVecchiaVals[inducedIndex] = weightVec[vecchiaIndex];
       }
       testVecchiaVars[testObsIndex] = 1.0 - neighborCorVec.dot(weightVec);
     }
+    fit->data.testNeighbors = testVecchiaIndices;
+    fit->data.testNeighborDeviationWeights = testVecchiaVals;
+    fit->data.testNeighborVecchiaVars = testVecchiaVars;
     delete [] distances;
     delete [] neighborIndices;
     return R_NilValue;
