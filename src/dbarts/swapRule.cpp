@@ -144,7 +144,7 @@ namespace dbarts {
         if (parentVariableIndex != childVariableIndex) updateVariablesAvailable(fit, parent, childVariableIndex);
 
 #if optimizedCache
-        parent.setAllIMinusBDCols(fit);
+        if (fit.data.numNeighbors != 0) parent.setAllIMinusBDCols(fit);
 #endif
         
         //get logpri and logL from current tree (X)
@@ -168,7 +168,7 @@ namespace dbarts {
         } else {
           oldState.restore(fit, parent);
 #if optimizedCache
-          parent.setAllIMinusBDCols(fit);
+          if (fit.data.numNeighbors != 0) parent.setAllIMinusBDCols(fit);
 #endif
         }
       } else {
@@ -221,7 +221,7 @@ namespace dbarts {
         updateVariablesAvailable(fit, parent, parentVariableIndex);
         if (parentVariableIndex != childVariableIndex) updateVariablesAvailable(fit, parent, childVariableIndex);
 #if optimizedCache
-        parent.setAllIMinusBDCols(fit);
+        if (fit.data.numNeighbors != 0) parent.setAllIMinusBDCols(fit);
 #endif
         
         double YLogPi = fit.model.treePrior->computeTreeLogProbability(fit, tree);
@@ -251,7 +251,7 @@ namespace dbarts {
           
           *stepTaken = false;
 #if optimizedCache
-          parent.setAllIMinusBDCols(fit);
+          if (fit.data.numNeighbors != 0) parent.setAllIMinusBDCols(fit);
 #endif
         }
       } else {
@@ -263,7 +263,7 @@ namespace dbarts {
         alpha = -1.0;
         *stepTaken = false;
 #if optimizedCache
-        parent.setAllIMinusBDCols(fit);
+        if (fit.data.numNeighbors != 0) parent.setAllIMinusBDCols(fit);
 #endif
       }
     }

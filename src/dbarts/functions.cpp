@@ -102,12 +102,14 @@ namespace dbarts {
   double metropolisJumpForTree(const BARTFit& fit, size_t chainNum, Tree& tree, const double* y, double sigma,
                                bool* stepTaken, StepType* stepType)
   { 
+//std::cout << "metropolisJumpForTree entered" << std::endl;
 #if optimizedCache
     if (!tree.matrixSuiteSet && fit.data.numNeighbors != 0) {
       tree.setAllIMinusBDCols(fit);
       tree.matrixSuiteSet = true;
     }
 #endif
+//std::cout << "First optimizedCache block passed" << std::endl;
     double alpha;
     bool birthedTree;
        

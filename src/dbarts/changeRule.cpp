@@ -158,7 +158,7 @@ for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
         if (newVariableIndex != oldState.rule.variableIndex) updateVariablesAvailable(fit, nodeToChange, oldState.rule.variableIndex);
 
 #if optimizedCache
-        nodeToChange.setAllIMinusBDCols(fit);
+        if (fit.data.numNeighbors != 0) nodeToChange.setAllIMinusBDCols(fit);
 #endif
         
         //get logpri and logL from candidate tree (Y)
@@ -185,7 +185,7 @@ for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
           
           *stepTaken = false;
 #if optimizedCache
-          nodeToChange.setAllIMinusBDCols(fit);
+          if (fit.data.numNeighbors != 0) nodeToChange.setAllIMinusBDCols(fit);
 /*
           NodeVector bottomNodes(nodeToChange.getBottomVector());
           for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
@@ -240,7 +240,7 @@ for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
         if (newVariableIndex != oldState.rule.variableIndex) updateVariablesAvailable(fit, nodeToChange, oldState.rule.variableIndex);
 
 #if optimizedCache
-        nodeToChange.setAllIMinusBDCols(fit);
+        if (fit.data.numNeighbors != 0) nodeToChange.setAllIMinusBDCols(fit);
 #endif
         
         //get logpri and logL from candidate tree (Y)
@@ -265,7 +265,7 @@ for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
           
           *stepTaken = false;
 #if optimizedCache
-          nodeToChange.setAllIMinusBDCols(fit);
+          if (fit.data.numNeighbors != 0) nodeToChange.setAllIMinusBDCols(fit);
 /*
           NodeVector bottomNodes(nodeToChange.getBottomVector());
           for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {

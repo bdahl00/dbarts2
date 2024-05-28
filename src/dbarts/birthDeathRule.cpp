@@ -100,7 +100,7 @@ for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
       double parentPriorGrowthProbability = fit.model.treePrior->computeGrowthProbability(fit, nodeToChange);
       double oldPriorProbability = 1.0 - parentPriorGrowthProbability;
       // bdahl addition
-// std::cout << "Likelihood calculation entered" << std::endl;
+ //std::cout << "Likelihood calculation entered" << std::endl;
       double oldLogLikelihood;
       if (fit.data.numNeighbors == 0) {
         oldLogLikelihood = computeLogLikelihoodForBranch(fit, chainNum, nodeToChange, y, sigma); // bdahl: original
@@ -114,11 +114,12 @@ for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
       // now perform birth;
 // std::cout << "Birth performed" << std::endl;
       storeState(oldState, nodeToChange);
-      
+// std::cout << "State stored" << std::endl; 
       bool exhaustedLeftSplits, exhaustedRightSplits;
       // Because the proposal split is drawn from the prior, its contribution to transition ratio
       // cancels out with the prior itself.
       Rule newRule = fit.model.treePrior->drawRuleAndVariable(fit, state.rng, nodeToChange, &exhaustedLeftSplits, &exhaustedRightSplits);
+//std::cout << "New rule drawn" << std::endl;
       nodeToChange.split(fit, chainNum, newRule, y, exhaustedLeftSplits, exhaustedRightSplits);
 //std::cout << "leftChild.numObservations: " << nodeToChange.leftChild->numObservations << std::endl;
 //std::cout << "rightChild.numObservations: " << nodeToChange.p.rightChild->numObservations << std::endl;

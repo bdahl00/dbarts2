@@ -481,7 +481,7 @@ namespace dbarts {
           m.average = misc_htm_computeMean(fit.threadManager, fit.chainScratch[chainNum].taskId, y, numObservations);
           m.numEffectiveObservations = static_cast<double>(numObservations);
 #if optimizedCache
-          IMinusBDCol = fit.data.adjIMinusB * Eigen::VectorXd::Constant(fit.data.numObservations, 1);
+          if (fit.data.numNeighbors != 0) IMinusBDCol = fit.data.adjIMinusB * Eigen::VectorXd::Constant(fit.data.numObservations, 1);
 #endif
         } else {
           m.average = misc_htm_computeWeightedMean(fit.threadManager, fit.chainScratch[chainNum].taskId, y, numObservations, fit.data.weights, &m.numEffectiveObservations);
@@ -491,14 +491,16 @@ namespace dbarts {
           m.average = misc_htm_computeIndexedMean(fit.threadManager, fit.chainScratch[chainNum].taskId, y, observationIndices, numObservations);
           m.numEffectiveObservations = static_cast<double>(numObservations);
 #if optimizedCache
-          Eigen::SparseVector<double> DCol(fit.data.numObservations);
-          DCol.reserve(numObservations);
-          std::vector<std::size_t> obsIndexVector(observationIndices, observationIndices + numObservations);
-          std::sort(obsIndexVector.begin(), obsIndexVector.end());
-          for (std::size_t obsIndex = 0; obsIndex < numObservations; ++obsIndex) {
-            DCol.insert(obsIndexVector.at(obsIndex)) = 1;
+          if (fit.data.numNeighbors != 0) {
+            Eigen::SparseVector<double> DCol(fit.data.numObservations);
+            DCol.reserve(numObservations);
+            std::vector<std::size_t> obsIndexVector(observationIndices, observationIndices + numObservations);
+            std::sort(obsIndexVector.begin(), obsIndexVector.end());
+            for (std::size_t obsIndex = 0; obsIndex < numObservations; ++obsIndex) {
+              DCol.insert(obsIndexVector.at(obsIndex)) = 1;
+            }
+            IMinusBDCol = fit.data.adjIMinusB * DCol;
           }
-          IMinusBDCol = fit.data.adjIMinusB * DCol;
 #endif
         } else {
           m.average = misc_htm_computeIndexedWeightedMean(fit.threadManager, fit.chainScratch[chainNum].taskId, y, observationIndices, numObservations, fit.data.weights, &m.numEffectiveObservations);

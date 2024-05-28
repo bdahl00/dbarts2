@@ -1436,6 +1436,7 @@ extern "C" {
 //std::cout << "At sampleParametersAndSetFits" << std::endl;
 #if optimizedCache
 //std::cout << "Tree equal to itself? " << state.trees[treeNum].equals(state.trees[treeNum]) << std::endl;
+#if 0
 NodeVector bottomNodes(state.trees[treeNum].getBottomNodes());
 std::vector<Eigen::VectorXd> originalBottomNodes(bottomNodes.size());
 for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
@@ -1446,6 +1447,7 @@ std::vector<Eigen::VectorXd> newBottomNodes(bottomNodes.size());
 for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
   newBottomNodes.at(nodeIndex) = bottomNodes[nodeIndex]->IMinusBDCol;
 }
+#endif
 #if 0
 for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
   for (std::size_t obsIndex = 0; obsIndex < fit.data.numObservations; ++obsIndex) {
@@ -1504,7 +1506,7 @@ for (std::size_t nodeIndex = 0; nodeIndex < bottomNodes.size(); ++nodeIndex) {
         // overwriting after that
         for (size_t j = 0; j < fit.data.numPredictors; ++j) variableCounts[j] = 0;
         countVariableUses(fit, state, variableCounts);
-#if 0
+#if 0 // This is the right thing to be doing, but in the wrong place. Kept for reference.
         // bdahl addition
         if (fit.data.numNeighbors != 0) {
           for (std::size_t testObsIndex = 0; testObsIndex < fit.data.numTestObservations; ++testObsIndex) {
